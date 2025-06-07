@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-// Importing assets
+
 import preclinicLogo from '../../assets/Preclinic Logo.png'; 
 import illustrationRegister from '../../assets/register.png'; 
 import facebookIcon from '../../assets/facebook-icon.png'; 
@@ -26,12 +26,12 @@ function RegisterPage() {
       alignItems: 'stretch',
     },
     illustrationSection: {
-      flex: window.innerWidth <= 768 ? 'none' : '0 0 60%', // 60% width on desktop, none on mobile
+      flex: window.innerWidth <= 768 ? 'none' : '0 0 60%', 
       backgroundColor: '#ffffff',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundImage: `url("${illustrationRegister}")`, //
+      backgroundImage: `url("${illustrationRegister}")`, 
       backgroundSize: '80%',
       backgroundRepeat: 'no-repeat',
       backgroundPosition: 'center',
@@ -40,7 +40,7 @@ function RegisterPage() {
       boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
     },
     registerFormSection: {
-      flex: window.innerWidth <= 768 ? '1' : '0 0 40%', // 40% width on desktop, full on mobile
+      flex: window.innerWidth <= 768 ? '1' : '0 0 40%',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -56,6 +56,7 @@ function RegisterPage() {
     header: {
       marginBottom: '30px',
       textAlign: 'center',
+      display:'flex',
     },
     preclinicLogo: {
       maxWidth: '150px',
@@ -79,7 +80,7 @@ function RegisterPage() {
     },
     formGroup: {
       textAlign: 'left',
-      position: 'relative', // For icons inside inputs
+      position: 'relative',
     },
     label: {
       display: 'block',
@@ -90,7 +91,7 @@ function RegisterPage() {
     formInput: {
       width: '100%',
       padding: '12px 15px',
-      paddingLeft: '40px', // Space for icon
+      paddingLeft: '40px',
       border: '1px solid #ddd',
       borderRadius: '8px',
       fontSize: '1em',
@@ -226,6 +227,7 @@ function RegisterPage() {
       <div style={styles.registerFormSection}>
         <div style={styles.header}>
           <img src={preclinicLogo} alt="Preclinic Logo" style={styles.preclinicLogo} />
+          <h2>Preclinic</h2>
         </div>
         <h2 style={styles.pageTitle}>Register</h2>
         <p style={styles.pageDescription}>Please enter your details to create account</p>
