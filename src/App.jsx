@@ -1,10 +1,12 @@
 import React from 'react';
 import LoginPage from './Component/Public/Login_page';
+import RegisterPage from './Component/Public/Register_page';
 
-function App() {
+function App(){
   return (
     <>
       <LoginPage />
+      <RegisterPage/>
     </>
   );
 }
