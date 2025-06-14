@@ -1,16 +1,29 @@
-import React from 'react';
-import LoginPage from './Component/Public/Login_page';
-import RegisterPage from './Component/Public/Register_page';
-import HomePage from './Component/Public/Home_page';
+import { useState } from 'react'
 
-function App(){
+
+import './App.css'
+import Homepage from './Component/Public/Home_page'
+import Loginpage from './Component/Public/Login_page'
+import Registerpage from './Component/Public/Register_page'
+import { Routes, Route } from 'react-router-dom'
+
+
+function App() {
   return (
+
     <>
-      <LoginPage />
-      <RegisterPage/>
-      <HomePage/>
+    {/* <BrowserRouter> */}
+    <Routes>
+   <Route  path='/' element= {<Homepage/>}/>   
+   <Route  path='/login' element= {   <Loginpage/>}/>   
+   <Route  path='/register' element= { <Registerpage/>}/>   
+
+   
+    </Routes>
+    {/* </BrowserRouter> */}
+     
     </>
-  );
+  )
 }
 
-export default App;
+export default App

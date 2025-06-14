@@ -1,411 +1,301 @@
-import React, { useState } from 'react';
+import React from 'react';
+import './Home_page.css' ;
+// import { BrowserRouter } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
-// Importing assets from the specified path
-import preclinicLogo from '../../assets/Preclinic Logo.png'; //
 
 
 
-function HomePage() {
-  const [department, setDepartment] = useState('');
-  const [services, setServices] = useState('');
-  const [doctors, setDoctors] = useState('');
-  const [date, setDate] = useState('25 Mar 2025'); // Initial date based on image
-  const [time, setTime] = useState('');
-  const [comments, setComments] = useState('');
+import PreclinicLogo from '../../assets/Homepage/logo.png';
+import CalendarIcon from '../../assets/Homepage/Calender.png';
+import ClockIcon from '../../assets/Homepage/Clock_icon.png';
+import CardiologyIcon from '../../assets/Homepage/Cardiology.png';
+import DentalCareIcon from '../../assets/Homepage/Dental Care.png';
+import NeurologyIcon from '../../assets/Homepage/Neurology.png'; 
+import GynecologyIcon from '../../assets/Homepage/Gynecology.png';
+import OncologyIcon from '../../assets/Homepage/Oncology.png'; 
+import UrologyIcon from '../../assets/Homepage/Urology.png';   
+import DrMichael from '../../assets/Homepage/Doctor1.png';
+import DrSarah from '../../assets/Homepage/Doctor2.PNG';
+import DrAvan from '../../assets/Homepage/Doctor3.png'; 
+import DrPatricia from '../../assets/Homepage/Doctor4.png'; 
+import FacebookLogo from '../../assets/Homepage/facbook_logo.png';
+import GoogleLogo from '../../assets/Homepage/google_logo.png';
+import AppleLogo from '../../assets/Homepage/Apple_logo.png';
 
-  const styles = {
-    homePageContainer: {
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f0f2f5',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-    },
-    navbar: {
-      width: '100%',
-      backgroundColor: 'white',
-      padding: '15px 5%',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      flexWrap: 'wrap',
-    },
-    navLeft: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '20px',
-    },
-    preclinicLogo: {
-      width: '120px',
-      height: 'auto',
-    },
-    navLinks: {
-      display: 'flex',
-      gap: '25px',
-      flexWrap: 'wrap',
-      marginTop: window.innerWidth <= 768 ? '10px' : '0',
-    },
-    navLink: {
-      textDecoration: 'none',
-      color: '#333',
-      fontWeight: '600',
-      fontSize: '1em',
-    },
-    navRight: {
-      display: 'flex',
-      gap: '10px',
-      marginTop: window.innerWidth <= 768 ? '10px' : '0',
-    },
-    signInButton: {
-      backgroundColor: '#5b45c3',
-      color: 'white',
-      padding: '10px 20px',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      fontSize: '0.9em',
-    },
-    signUpButton: {
-      backgroundColor: '#333',
-      color: 'white',
-      padding: '10px 20px',
-      border: 'none',
-      borderRadius: '5px',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      fontSize: '0.9em',
-    },
-    mainContent: {
-      display: 'flex',
-      justifyContent: 'space-around',
-      alignItems: 'center',
-      width: '90%',
-      maxWidth: '1200px',
-      padding: '60px 0',
-      flexDirection: window.innerWidth <= 992 ? 'column' : 'row',
-      gap: '40px',
-    },
-    leftSection: {
-      flex: '1',
-      textAlign: window.innerWidth <= 992 ? 'center' : 'left',
-      padding: '20px',
-    },
-    tagline: {
-      color: '#e74c3c',
-      fontWeight: 'bold',
-      marginBottom: '10px',
-      display: 'inline-block',
-      padding: '5px 15px',
-      backgroundColor: '#ffebeb',
-      borderRadius: '20px',
-      fontSize: '0.9em',
-    },
-    heroTitle: {
-      fontSize: window.innerWidth <= 768 ? '2.5em' : '3.5em',
-      color: '#333',
-      marginBottom: '20px',
-      lineHeight: '1.2',
-      fontWeight: 'bold',
-    },
-    heroTitleHighlight: {
-      color: '#5b45c3',
-    },
-    heroDescription: {
-      fontSize: '1.1em',
-      color: '#666',
-      marginBottom: '30px',
-      lineHeight: '1.6',
-    },
-    actionButtons: {
-      display: 'flex',
-      gap: '15px',
-      justifyContent: window.innerWidth <= 992 ? 'center' : 'flex-start',
-    },
-    viewDoctorsButton: {
-      backgroundColor: '#333',
-      color: 'white',
-      padding: '15px 30px',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '1em',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      textTransform: 'capitalize',
-    },
-    getStartedButton: {
-      backgroundColor: 'white',
-      color: '#333',
-      padding: '15px 30px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      fontSize: '1em',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
-      textTransform: 'capitalize',
-    },
-    rightSection: {
-      flex: '1',
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '10px',
-      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-      width: window.innerWidth <= 992 ? '90%' : 'auto',
-      maxWidth: '500px',
-    },
-    formTitle: {
-      fontSize: '1.8em',
-      color: '#333',
-      marginBottom: '25px',
-      textAlign: 'center',
-    },
-    appointmentForm: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
-    },
-    formRow: {
-      display: 'flex',
-      gap: '20px',
-      flexDirection: window.innerWidth <= 500 ? 'column' : 'row',
-    },
-    formGroup: {
-      flex: '1',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px',
-    },
-    label: {
-      fontWeight: 'bold',
-      color: '#555',
-      fontSize: '0.9em',
-    },
-    selectInput: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      fontSize: '1em',
-      backgroundColor: 'white',
-      appearance: 'none', // Remove default arrow
-      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666666'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
-      backgroundRepeat: 'no-repeat',
-      backgroundPosition: 'right 10px center',
-      backgroundSize: '20px',
-      cursor: 'pointer',
-    },
-    textInput: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      fontSize: '1em',
-      boxSizing: 'border-box',
-    },
-    dateInputContainer: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      padding: '0 12px',
-      backgroundColor: 'white',
-    },
-    dateInput: {
-      flex: '1',
-      padding: '12px 0',
-      border: 'none',
-      outline: 'none',
-      fontSize: '1em',
-      backgroundColor: 'transparent',
-    },
-    dateIcon: {
-      color: '#666',
-      marginLeft: '10px',
-      cursor: 'pointer',
-    },
-    textArea: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      fontSize: '1em',
-      minHeight: '80px',
-      resize: 'vertical',
-      boxSizing: 'border-box',
-    },
-    bookAppointmentButton: {
-      width: '100%',
-      padding: '15px',
-      backgroundColor: '#333',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '1.1em',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      textTransform: 'capitalize',
-      marginTop: '10px',
-    },
-  };
 
-  const handleAppointmentSubmit = (event) => {
-    event.preventDefault();
-    console.log({ department, services, doctors, date, time, comments });
-    alert('Appointment Booked!');
-  };
+const Home_page = () => {
+
+    const navigate = useNavigate();
+  const specialties = [
+    { name: 'Cardiology', doctors: 20, icon: CardiologyIcon },
+    { name: 'Dental Care', doctors: 15, icon: DentalCareIcon },
+    { name: 'Neurology', doctors: 12, icon: NeurologyIcon },
+    { name: 'Gynecology', doctors: 10, icon: GynecologyIcon },
+    { name: 'Oncology', doctors: 17, icon: OncologyIcon || 'https://via.placeholder.com/60/e0e0e0/555555?text=Oncology' },
+    { name: 'Urology', doctors: 14, icon: UrologyIcon || 'https://via.placeholder.com/60/e0e0e0/555555?text=Urology' },
+  ];
+
+  const doctors = [
+    {
+      name: 'Dr. Michael Thompson',
+      specialty: 'Cardiologist',
+      appointmentsCompleted: 216,
+      startsFrom: 499,
+      image: DrMichael,
+    },
+    {
+      name: 'Dr. Sarah Johnson',
+      specialty: 'Orthopedic Surgeon',
+      appointmentsCompleted: 137,
+      startsFrom: 249,
+      image: DrSarah,
+    },
+    {
+      name: 'Dr. Avan Davis',
+      specialty: 'Endocrinologist',
+      appointmentsCompleted: 179,
+      startsFrom: 399,
+      image: DrAvan || 'https://via.placeholder.com/150/f0f0f0/808080?text=Dr+Avan',
+    },
+    {
+      name: 'Dr. Patricia Brown',
+      specialty: 'Pulmonologist',
+      appointmentsCompleted: 275,
+      startsFrom: 299,
+      image: DrPatricia || 'https://via.placeholder.com/150/f0f0f0/808080?text=Dr+Patricia',
+    },
+  ];
 
   return (
-    <div style={styles.homePageContainer}>
-      {/* Navbar Section */}
-      <nav style={styles.navbar}>
-        <div style={styles.navLeft}>
-          <img src={preclinicLogo} alt="Preclinic Logo" style={styles.preclinicLogo} />
-          <div style={styles.navLinks}>
-            <a href="#" style={styles.navLink}>Home</a>
-            <a href="#" style={styles.navLink}>Specialities</a>
-            <a href="#" style={styles.navLink}>Doctors</a>
-            <a href="#" style={styles.navLink}>Blogs</a>
-            <a href="#" style={styles.navLink}>Testimonials</a>
-            <a href="#" style={styles.navLink}>FAQ</a>
-            <a href="#" style={styles.navLink}>Contact Us</a>
-          </div>
+    <div className="home-page-container">
+      {/* Header Section */}
+      <header className="home-header-container">
+        <div className="home-header-logo-brand">
+          <img src={PreclinicLogo} alt="Preclinic Logo" className="home-header-logo" />
+          <span className="home-header-brand-name">Preclinic</span>
         </div>
-        <div style={styles.navRight}>
-          <button style={styles.signInButton}>Sign In</button>
-          <button style={styles.signUpButton}>Sign Up</button>
+        <nav className="home-header-nav">
+          <a href="#" className="home-header-nav-link">Home</a>
+          <a href="#" className="home-header-nav-link">Specialities</a>
+          <a href="#" className="home-header-nav-link">Doctors</a>
+        
+          <a href="#" className="home-header-nav-link">Contact Us</a>
+        </nav>
+        <div className="home-header-auth-buttons">
+          <button onClick={()=> navigate('/login')} className="home-header-signin-btn">Sign In</button>
+          <button onClick ={()=>navigate('/register')}className="home-header-signup-btn">Sign Up</button>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content Section */}
-      <div style={styles.mainContent}>
-        {/* Left Section - Hero Text */}
-        <div style={styles.leftSection}>
-          <span style={styles.tagline}>❤️ #1 Medical Clinic in your Location</span>
-          <h1 style={styles.heroTitle}>
+      {/* Hero Section */}
+      <section className="home-hero-section-container">
+        <div className="home-hero-background-overlay"></div>
+        <div className="home-hero-content">
+          <div className="home-hero-tagline">
+            <span className="home-heart-icon">❤️</span>
+            <p className="home-tagline-text">#1 Medical Clinic in your Location</p>
+          </div>
+          <h1 className="home-hero-title">
             Bringing Quality <br />
-            <span style={styles.heroTitleHighlight}>Healthcare Services</span> <br />
+            <span className="home-hero-title-highlight">Healthcare Services</span> <br />
             To You
           </h1>
-          <p style={styles.heroDescription}>
-            Delivering Comprehensive Health Support through our innovative platform that Seamlessly
-            Connects your terms
+          <p className="home-hero-description">
+            Delivering Comprehensive Health Support through our innovative platform that Seamlessly Connects your terms.
           </p>
-          <div style={styles.actionButtons}>
-            <button style={styles.viewDoctorsButton}>View All Doctors</button>
-            <button style={styles.getStartedButton}>Get Started</button>
+          <div className="home-hero-buttons">
+            <button className="home-hero-view-doctors-btn">
+              View All Doctors <span className="home-arrow-icon">›</span>
+            </button>
+            <button className="home-hero-get-started-btn">
+              Get Started <span className="home-arrow-icon">›</span>
+            </button>
           </div>
         </div>
 
-        {/* Right Section - Appointment Form */}
-        <div style={styles.rightSection}>
-          <h3 style={styles.formTitle}>Appointment Form</h3>
-          <form style={styles.appointmentForm} onSubmit={handleAppointmentSubmit}>
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label htmlFor="department" style={styles.label}>Department *</label>
-                <select
-                  id="department"
-                  style={styles.selectInput}
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  required
-                >
-                  <option value="">Select</option>
-                  <option value="Cardiology">Cardiology</option>
-                  <option value="Dermatology">Dermatology</option>
-                  <option value="Pediatrics">Pediatrics</option>
-                </select>
-              </div>
-              <div style={styles.formGroup}>
-                <label htmlFor="services" style={styles.label}>Services *</label>
-                <select
-                  id="services"
-                  style={styles.selectInput}
-                  value={services}
-                  onChange={(e) => setServices(e.target.value)}
-                  required
-                >
-                  <option value="">Select</option>
-                  <option value="Check-up">Check-up</option>
-                  <option value="Consultation">Consultation</option>
-                  <option value="Vaccination">Vaccination</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label htmlFor="doctors" style={styles.label}>Doctors *</label>
-              <select
-                id="doctors"
-                style={styles.selectInput}
-                value={doctors}
-                onChange={(e) => setDoctors(e.target.value)}
-                required
-              >
-                <option value="">Select</option>
-                <option value="Dr. John Doe">Dr. John Doe</option>
-                <option value="Dr. Jane Smith">Dr. Jane Smith</option>
+        <div className="home-hero-appointment-form-card">
+          <h2 className="home-form-title">Appointment Form</h2>
+          <form className="home-appointment-form">
+            <div className="home-form-group">
+              <label htmlFor="department">Department <span className="home-required">*</span></label>
+              <select id="department">
+                <option>Select</option>
               </select>
             </div>
-
-            <div style={styles.formRow}>
-              <div style={styles.formGroup}>
-                <label htmlFor="date" style={styles.label}>Date *</label>
-                <div style={styles.dateInputContainer}>
-                  <input
-                    type="text" // Keep as text to show '25 Mar 2025' like the image
-                    id="date"
-                    style={styles.dateInput}
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    required
-                  />
-                  <i className="fa fa-calendar-alt" style={styles.dateIcon}></i>
+            <div className="home-form-group">
+              <label htmlFor="services">Services <span className="home-required">*</span></label>
+              <select id="services">
+                <option>Select</option>
+              </select>
+            </div>
+            <div className="home-form-group">
+              <label htmlFor="doctors">Doctors</label>
+              <select id="doctors">
+                <option>Select</option>
+              </select>
+            </div>
+            <div className="home-form-row">
+              <div className="home-form-group-half">
+                <label htmlFor="date">Date <span className="home-required">*</span></label>
+                <div className="home-input-with-icon">
+                  <input type="text" id="date" placeholder="25 Mar 2025" />
+                  {CalendarIcon && <img src={CalendarIcon} alt="Calendar" className="home-input-icon-img" />}
                 </div>
               </div>
-              <div style={styles.formGroup}>
-                <label htmlFor="time" style={styles.label}>Time *</label>
-                <div style={styles.dateInputContainer}> {/* Reusing dateInputContainer for time */}
-                  <input
-                    type="text" // Keep as text or change to time if actual input is desired
-                    id="time"
-                    style={styles.dateInput}
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    placeholder="-- : -- --"
-                    required
-                  />
-                  <i className="fa fa-clock" style={styles.dateIcon}></i>
+              <div className="home-form-group-half">
+                <label htmlFor="time">Time</label>
+                <div className="home-input-with-icon">
+                  <input type="text" id="time" placeholder="-- : --" />
+                  {ClockIcon && <img src={ClockIcon} alt="Clock" className="home-input-icon-img" />}
                 </div>
               </div>
             </div>
-
-            <div style={styles.formGroup}>
-              <label htmlFor="comments" style={styles.label}>Comments *</label>
-              <textarea
-                id="comments"
-                style={styles.textArea}
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Description"
-                required
-              ></textarea>
+            <div className="home-form-group">
+              <label htmlFor="comments">Comments</label>
+              <textarea id="comments" rows="3" placeholder="Description"></textarea>
             </div>
-
-            <button type="submit" style={styles.bookAppointmentButton}>
+            <button type="submit" className="home-book-appointment-btn">
               Book an Appointment
             </button>
           </form>
         </div>
-      </div>
+      </section>
+
+      {/* Specialties Section */}
+      <section className="home-specialties-section-container">
+        <div className="home-container">
+          <h2 className="home-specialties-title">Trending Specialities</h2>
+          <p className="home-specialties-subtitle">Explore a Wide Range of Specialities</p>
+
+          <div className="home-specialties-grid-wrapper">
+            <button className="home-specialties-arrow-button home-arrow-left">&lt;</button>
+            <div className="home-specialties-grid">
+              {specialties.map((specialty, index) => (
+                <div
+                  key={index}
+                  className="home-specialty-card"
+                >
+                  <div className="home-specialty-icon-wrapper">
+                    <img src={specialty.icon} alt={specialty.name} className="home-specialty-icon" />
+                  </div>
+                  <h3 className="home-specialty-name">{specialty.name}</h3>
+                  <p className="home-specialty-doctors-count">{specialty.doctors} Doctors Available</p>
+                </div>
+              ))}
+            </div>
+            <button className="home-specialties-arrow-button home-arrow-right">&gt;</button>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Doctors Section */}
+      <section className="home-featured-doctors-section-container">
+        <div className="home-container">
+          <h2 className="home-featured-doctors-title">Featured Doctors</h2>
+          <p className="home-featured-doctors-subtitle">Meet your trusted team of medical experts and specialists</p>
+
+          <div className="home-doctors-grid">
+            {doctors.map((doctor, index) => (
+              <div
+                key={index}
+                className="home-doctor-card"
+              >
+                <div className="home-doctor-image-wrapper">
+                  <img src={doctor.image} alt={doctor.name} className="home-doctor-image" />
+                </div>
+                <div className="home-doctor-info">
+                  <h3 className="home-doctor-name">{doctor.name}</h3>
+                  <p className="home-doctor-specialty">{doctor.specialty}</p>
+                  <p className="home-doctor-appointments">Appointments Completed: {doctor.appointmentsCompleted}</p>
+                  <div className="home-doctor-footer">
+                    <span className="home-doctor-price">Starts From <span className="home-price-value">${doctor.startsFrom}</span></span>
+                    {CalendarIcon && <img src={CalendarIcon} alt="Schedule" className="home-schedule-icon" />}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer Section */}
+      <footer className="home-footer-container">
+        <div className="home-container home-footer-grid">
+          <div className="home-footer-section home-contact-info">
+            <h3 className="home-footer-heading">Contact Info</h3>
+            <div className="home-footer-logo-brand">
+              <img src={PreclinicLogo} alt="Preclinic Logo" className="home-footer-logo" />
+              <span className="home-footer-brand-name">Preclinic</span>
+            </div>
+            <p className="home-footer-contact-item">
+              <span className="home-contact-icon">📍</span> 2281 Valley, Eagleville, 19403
+            </p>
+            <p className="home-footer-contact-item">
+              <span className="home-contact-icon">📞</span> +1565465656
+            </p>
+            <p className="home-footer-contact-item">
+              <span className="home-contact-icon">📧</span> info@example.com
+            </p>
+          </div>
+
+          <div className="home-footer-section">
+            <h3 className="home-footer-heading">Explore Pages</h3>
+            <ul className="home-footer-links-list">
+              <li><a href="#" className="home-footer-link">Home</a></li>
+              <li><a href="#" className="home-footer-link">Doctors</a></li>
+                 <li><a href="#" className="home-footer-link">Specialities</a></li>
+              <li><a href="#" className="home-footer-link">Contact Us</a></li>
+            </ul>
+          </div>
+
+          <div className="home-footer-section">
+            <h3 className="home-footer-heading">Useful Links</h3>
+            <ul className="home-footer-links-list">
+              <li><a href="#" className="home-footer-link">Terms & Conditions</a></li>
+              <li><a href="#" className="home-footer-link">Privacy Policy</a></li>
+              <li><a href="#" className="home-footer-link">Refund Policy</a></li>
+              <li><a href="#" className="home-footer-link">Testimonials</a></li>
+              <li><a href="#" className="home-footer-link">FAQ</a></li>
+              <li><a href="#" className="home-footer-link">Dashboard</a></li>
+            </ul>
+          </div>
+
+          <div className="home-footer-section">
+            <h3 className="home-footer-heading">Subscribe For Newsletter</h3>
+            <form className="home-newsletter-form">
+              <input
+                type="email"
+                placeholder="Enter Email"
+                className="home-newsletter-input"
+              />
+              <button
+                type="submit"
+                className="home-newsletter-subscribe-btn"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div className="home-footer-bottom">
+          <div className="home-social-icons">
+            <a href="#" className="home-social-icon-link">
+              <img src={FacebookLogo} alt="Facebook" className="home-social-icon" />
+            </a>
+            <a href="#" className="home-social-icon-link">
+              <img src={GoogleLogo} alt="Google" className="home-social-icon" />
+            </a>
+            <a href="#" className="home-social-icon-link">
+              <img src={AppleLogo} alt="Apple" className="home-social-icon" />
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
-}
+};
 
-export default HomePage;
+
+export default Home_page;

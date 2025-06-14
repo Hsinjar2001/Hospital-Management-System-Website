@@ -1,311 +1,85 @@
-import React, { useState } from 'react';
-
-import preclinicLogo from '../../assets/Preclinic Logo.png';
-import illustration from '../../assets/illustration.png'; // Changed to Image (5).png as per request
-import facebookIcon from '../../assets/facebook-icon.png';
-import googleIcon from '../../assets/google-icon.png';
-import appleIcon from '../../assets/apple-icon.png';
+import React from 'react';
+import './Login_page.css';
+import { useNavigate } from 'react-router-dom';
 
 
-function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+import PreclinicLogo from '../../assets/Homepage/logo.png';
+import FacebookLogo from '../../assets/Homepage/facbook_logo.png';
+import GoogleLogo from '../../assets/Homepage/google_logo.png';
+import AppleLogo from '../../assets/Homepage/Apple_logo.png';
+import MailIcon from '../../assets/Homepage/Message_logo.png';
+// import Login from '../../assets/Login_Page_Image/login.png';
 
-  const styles = {
-    loginPageContainer: {
-      display: 'flex',
-      minHeight: '100vh',
+const LoginPage = () => {
 
-      fontFamily: 'Arial, sans-serif',
-      flexDirection: window.innerWidth <= 768 ? 'column' : 'row',
-      alignItems: 'stretch', // Ensure both children stretch to fill height
-    },
-    loginIllustrationSection: {
-      flex: window.innerWidth <= 768 ? 'none' : '0 0 60%', // Takes 60% width on desktop, none on mobile
-      backgroundColor: '#ffffff', // Background color for the left side
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundImage: `url("${illustration}")`,
-      backgroundSize: '80%', // Adjusted for better visibility of the illustration
-      backgroundRepeat: 'no-repeat',
-      backgroundPosition: 'center',
-      minHeight: window.innerWidth <= 768 ? '250px' : 'auto',
-      height: '100vh', // Ensures it takes full viewport height on desktop
-      boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', // Subtle shadow
-      width:'500px',
-    },
-    loginFormSection: {
-      flex: window.innerWidth <= 768 ? '1' : '0 0 40%', // Takes 40% width on desktop, full on mobile
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: window.innerWidth <= 768 ? '20px' : '40px',
-      backgroundColor: '#ffffff',
-      boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', // Shadow for the card effect
-      textAlign: 'center',
-      borderRadius: window.innerWidth <= 768 ? '0' : '8px', // Rounded corners on desktop
-      margin: window.innerWidth <= 768 ? '0' : '20px', // Margin on desktop to create space around the card
-      boxSizing: 'border-box', // Include padding in the element's total width and height
-    },
-    loginHeader: {
-      marginBottom: '30px',
-      textAlign: 'center',
-      display:'flex',
-      margin:'10px',
-      padding:'10px',
-    },
-    preclinicLogo: {
-      maxWidth: '150px',
-      height: 'auto',
-    },
-    pageTitle: {
-      fontSize: '2em',
-      marginBottom: '10px',
-      color: '#333',
-    },
-    pageDescription: {
-      color: '#666',
-      marginBottom: '30px',
-    },
-    loginForm: {
-      width: '100%',
-      maxWidth: '400px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '15px',
-    },
-    formGroup: {
-      textAlign: 'left',
-    },
-    label: {
-      display: 'block',
-      marginBottom: '8px',
-      fontWeight: 'bold',
-      color: '#555',
-    },
-    formInput: {
-      width: '100%',
-      padding: '12px 15px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      fontSize: '1em',
-      boxSizing: 'border-box',
-      outline: 'none',
-    },
-    passwordInputContainer: {
-      position: 'relative',
-      width: '100%',
-    },
-    passwordToggleButton: {
-      position: 'absolute',
-      right: '10px',
-      top: '50%',
-      transform: 'translateY(-50%)',
-      background: 'none',
-      border: 'none',
-      color: '#777',
-      cursor: 'pointer',
-      fontSize: '0.9em',
-      padding: '5px',
-    },
-    loginOptions: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: '5px',
-      marginBottom: '15px',
-      width: '100%',
-    },
-    checkboxContainer: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-      color: '#666',
-      cursor: 'pointer',
-    },
-    checkboxInput: {
-      width: '16px',
-      height: '16px',
-      accentColor: '#5b45c3',
-    },
-    forgotPasswordLink: {
-      color: '#5b45c3',
-      textDecoration: 'none',
-      fontWeight: 'bold',
-    },
-    loginButton: {
-      width: '100%',
-      padding: '15px',
-      backgroundColor: '#5b45c3',
-      color: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '1.1em',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      textTransform: 'capitalize',
-    },
-    loginSeparator: {
-      margin: '30px 0',
-      textAlign: 'center',
-      color: '#999',
-      position: 'relative',
-      width: '100%',
-      maxWidth: '400px',
-    },
-    socialLoginButtons: {
-      display: 'flex',
-      justifyContent: 'center',
-      gap: '15px',
-      marginBottom: '30px',
-      width: '100%',
-      maxWidth: '400px',
-    },
-    socialButton: {
-      flex: '1',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      color: '#555',
-      fontSize: '1em',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      cursor: 'pointer',
-      textTransform: 'capitalize',
-    },
-    socialIcon: {
-      width: '24px',
-      height: '24px',
-      marginRight: '5px',
-    },
-    facebookIcon: { color: '#3b5998' },
-    googleIcon: { color: '#DB4437' },
-    appleIcon: { color: '#000000' },
-    signupLink: {
-      fontSize: '0.95em',
-      color: '#666',
-    },
-    signupLinkAnchor: {
-      color: '#5b45c3',
-      textDecoration: 'none',
-      fontWeight: 'bold',
-    },
-  };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    console.log('Email:', email);
-    console.log('Password:', password);
-    console.log('Remember Me:', rememberMe);
-    alert('Login attempted with: ' + email);
-  };
-
-  const handleSocialLogin = (provider) => {
-    console.log(`Logging in with ${provider}`);
-    alert(`Logging in with ${provider}`);
-  };
-
-  const handleClickShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  return (
-    <div style={styles.loginPageContainer}>
-      <div style={styles.loginIllustrationSection}>
-      </div>
-
-      <div style={styles.loginFormSection}>
-        <div style={styles.loginHeader}>
-          <img src={preclinicLogo} alt="Preclinic Logo" style={styles.preclinicLogo} />
-          <h2>Preclinic</h2>
-        </div>
-        <h2 style={styles.pageTitle}>Sign In</h2>
-        <p style={styles.pageDescription}>Please enter below details to access the dashboard</p>
-
-        <form onSubmit={handleSubmit} style={styles.loginForm}>
-          <div style={styles.formGroup}>
-            <label htmlFor="email" style={styles.label}>Email Address</label>
-            <input
-              type="email"
-              id="email"
-              style={styles.formInput}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter Email Address"
-              required
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label htmlFor="password" style={styles.label}>Password</label>
-            <div style={styles.passwordInputContainer}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                style={styles.formInput}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter Password"
-                required
-              />
-              <button
-                type="button"
-                style={styles.passwordToggleButton}
-                onClick={handleClickShowPassword}
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
+    const navigate = useNavigate();
+   
+    return (
+        <div className="login-page-container">
+            <div className="login-illustration-section">
+                {/* Illustration is handled via CSS background-image */}
             </div>
-          </div>
+            <div className="login-form-section">
+                <div className="login-header">
+                    <img src={PreclinicLogo} alt="Preclinic Logo" className="preclinic-logo-small" />
+                    <span>Preclinic</span>
+                </div>
+                <div className="login-card">
+                    <h2>Sign In</h2>
+                    <p className="login-instruction">Please enter below details to access the dashboard</p>
 
-          <div style={styles.loginOptions}>
-            <label style={styles.checkboxContainer}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                name="rememberMe"
-                style={styles.checkboxInput}
-              />
-              Remember Me
-            </label>
-            <a href="#" style={styles.forgotPasswordLink}>
-              Forgot Password?
-            </a>
-          </div>
+                    <form className="login-form">
+                        <div className="form-group">
+                            <label htmlFor="email">Email Address</label>
+                            <div className="input-with-icon">
+                                <img src={MailIcon} alt="Mail Icon" className="input-icon" />
+                                <input type="email" id="email" placeholder="Enter Email Address" />
+                            </div>
+                        </div>
 
-          <button type="submit" style={styles.loginButton}>
-            Login
-          </button>
-        </form>
+                        <div className="form-group">
+                            <label htmlFor="password">Password</label>
+                            <div className="input-with-icon">
+                                <span className="password-lock-icon">🔒</span>
+                                <input type="password" id="password" placeholder="**********" />
+                                <span className="password-toggle-icon">👁️</span>
+                            </div>
+                        </div>
 
-        <div style={styles.loginSeparator}>OR</div>
+                        <div className="form-options">
+                            <div className="remember-me">
+                                <input type="checkbox" id="remember-me" />
+                                <label htmlFor="remember-me">Remember Me</label>
+                            </div>
+                            <a href="#" className="forgot-password">Forgot Password?</a>
+                        </div>
 
-        <div style={styles.socialLoginButtons}>
-          <button style={styles.socialButton} onClick={() => handleSocialLogin('Facebook')}>
-            <img src={facebookIcon} alt="Facebook" style={styles.socialIcon} /> Facebook
-          </button>
-          <button style={styles.socialButton} onClick={() => handleSocialLogin('Google')}>
-            <img src={googleIcon} alt="Google" style={styles.socialIcon} /> Google
-          </button>
-          <button style={styles.socialButton} onClick={() => handleSocialLogin('Apple')}>
-            <img src={appleIcon} alt="Apple" style={styles.socialIcon} /> Apple
-          </button>
+                        <button type="submit" className="login-button">Login</button>
+
+                        <p className="or-divider">OR</p>
+
+                        <div className="social-login-buttons">
+                            <button className="social-button facebook">
+                                <img src={FacebookLogo} alt="Facebook" />
+                            </button>
+                            <button className="social-button google">
+                                <img src={GoogleLogo} alt="Google" />
+                            </button>
+                            <button className="social-button apple">
+                                <img src={AppleLogo} alt="Apple" />
+                            </button>
+                        </div>
+
+                        <p className="register-link">
+                            Don't have an account, yet?<a href="#" onClick={()=>navigate('/register')}>Register</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
         </div>
+    );
+};
 
-        <p style={styles.signupLink}>
-          Don't have an account yet? <a href="#" style={styles.signupLinkAnchor}>Register</a>
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export default LoginPage;
