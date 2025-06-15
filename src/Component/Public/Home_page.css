@@ -1,6 +1,6 @@
 
 
-/* Global Styles / Reset (from App.css) */
+
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 
 body {
@@ -8,7 +8,7 @@ body {
     font-family: 'Poppins', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #f0f2f5; /* Light background for the whole page */
+    background-color: #f0f2f5;
     color: #333;
 }
 
@@ -27,9 +27,7 @@ button {
     background: none;
 }
 
-.home-page-container {
-    /* Styles for the main container if needed */
-}
+
 
 .home-container {
     max-width: 1200px;
@@ -134,9 +132,7 @@ button {
     inset: 0;
     z-index: 0;
     opacity: 0.5;
-    /* background-image: url('../../assets/Homepage/hero_bg_illustration.png'); */
-    /* background-size: cover; */
-    /* background-position: center; */
+
 }
 
 .home-hero-content {
@@ -701,13 +697,12 @@ button {
     background-color: #1f2937;
     border: 1px solid #374151;
     color: #fff;
-    /* This will not work directly as a CSS property, for placeholders you typically use ::placeholder pseudo-element */
-    /* placeholder-color: #6b7280; */
+  
     margin-bottom: 1rem;
 }
 
 .home-newsletter-input::placeholder {
-    color: #6b7280; /* gray-500 */
+    color: #6b7280; 
 }
 
 

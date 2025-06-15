@@ -1,6 +1,7 @@
 import React from 'react';
 import './Register_page.css';
-import { useNavigate } from 'react-router-dom';
+import { data, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
 
 
 
@@ -15,7 +16,13 @@ import MailIcon from '../../assets/Homepage/Message_logo.png';
 
 
 const RegisterPage = () => {
+    const{ register, handleSubmit} = useForm();
     const navigate = useNavigate();
+    const onSubmit = (data) => {
+        localStorage.setItem("user",JSON.stringify(data));
+        alert("Registered sucessfully!");
+        navigate("/login");
+    }
    
     return (
         <div className="register-page-container">
@@ -29,12 +36,12 @@ const RegisterPage = () => {
                     <h2>Register</h2>
                     <p className="register-instruction">Please enter your details to create account</p>
 
-                    <form className="register-form">
+                    <form onSubmit={handleSubmit(onSubmit)}  className="register-form">
                         <div className="form-group">
                             <label htmlFor="fullName">Full Name</label>
                             <div className="input-with-icon">
                                 <span className="input-icon">👤</span>
-                                <input type="text" id="fullName" placeholder="Enter Name" />
+                                <input {...register("first_name")} type="text" id="fullName" placeholder="Enter Name" />
                             </div>
                         </div>
 
@@ -42,7 +49,7 @@ const RegisterPage = () => {
                             <label htmlFor="email">Email Address</label>
                             <div className="input-with-icon">
                                 <img src={MailIcon} alt="Mail Icon" className="input-icon" />
-                                <input type="email" id="email" placeholder="Enter Email Address" />
+                                <input {...register("email address")} type="email" id="email" placeholder="Enter Email Address" />
                             </div>
                         </div>
 
@@ -50,7 +57,7 @@ const RegisterPage = () => {
                             <label htmlFor="password">Password</label>
                             <div className="input-with-icon">
                                 <span className="password-lock-icon">🔒</span>
-                                <input type="password" id="password" placeholder="**********" />
+                                <input {...register("password")}type="password" id="password" placeholder="**********" />
                                 <span className="password-toggle-icon">👁️</span>
                             </div>
                         </div>
@@ -59,7 +66,7 @@ const RegisterPage = () => {
                             <label htmlFor="confirmPassword">Confirm Password</label>
                             <div className="input-with-icon">
                                 <span className="password-lock-icon">🔒</span>
-                                <input type="password" id="confirmPassword" placeholder="**********" />
+                                <input  {...register("confirmPassword") }type="password" id="confirmPassword" placeholder="**********" />
                                 <span className="password-toggle-icon">👁️</span>
                             </div>
                         </div>
@@ -96,6 +103,7 @@ const RegisterPage = () => {
         </div>
     );
 };
+
 
 
 export default RegisterPage;
