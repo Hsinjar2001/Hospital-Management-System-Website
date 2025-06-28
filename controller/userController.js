@@ -21,7 +21,7 @@ const register = async(request, response) => {
         })
     }
 
-    //data check -> database
+    //datacheck -> database
       await Users.create({
         username,
         email,
