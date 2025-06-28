@@ -1,0 +1,246 @@
+/* Main container for the entire page */
+.admin-doctors-page-container {
+    padding: 30px;
+    background-color: #f8faff;  
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
+        width: 1200px;
+}
+
+/* Header section with title and buttons */
+.admin-doctors-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.admin-doctors-header .header-left h1 {
+    font-size: 28px;
+    color: #333333;
+    margin: 0;
+}
+
+.admin-doctors-header .header-left .total-doctors {
+    font-size: 14px;
+    color: #666666;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.admin-doctors-header .header-right {
+    display: flex;
+    gap: 15px; /* Space between buttons */
+}
+
+.admin-doctors-header button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Space between icon and text */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-doctors-header .filters-button {
+    background-color: #ffffff;
+    color: #555555;
+    border: 1px solid #dddddd;
+}
+
+.admin-doctors-header .filters-button:hover {
+    background-color: #f0f0f0;
+}
+
+.admin-doctors-header .new-doctor-button {
+    background-color: #4c68ff; /* Blue primary button color */
+    color: white;
+}
+
+.admin-doctors-header .new-doctor-button:hover {
+    background-color: #3a52d9; /* Darker blue on hover */
+}
+
+.admin-doctors-header .filter-icon,
+.admin-doctors-header .plus-icon {
+    font-size: 18px;
+}
+
+/* Doctor Grid Layout */
+.doctor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid columns */
+    gap: 25px; /* Space between cards */
+}
+
+/* Individual Doctor Card Styling */
+.doctor-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    overflow: hidden; /* Ensures rounded corners on image if it overflows */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doctor-card:hover {
+    transform: translateY(-5px); /* Slight lift effect on hover */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.doctor-card-top {
+    position: relative; /* For positioning kebab menu */
+    background-color: #f0f2f5; /* Light grey background for image area */
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 180px; /* Fixed height for image area for consistent card size */
+}
+
+.doctor-card .doctor-avatar {
+    width: 120px; /* Size of doctor's circular image */
+    height: 120px;
+    border-radius: 50%; /* Make it circular */
+    object-fit: cover; /* Cover the area, cropping if necessary */
+    border: 3px solid #e0e7ff; /* Light blue border around image */
+}
+
+.doctor-card .kebab-menu {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 24px; /* Size for unicode ellipsis */
+    color: #888888;
+    cursor: pointer;
+    padding: 5px; /* Increase clickable area */
+    line-height: 1; /* Adjust vertical alignment for unicode */
+}
+
+.doctor-card .kebab-menu img {
+    width: 24px;
+    height: 24px;
+}
+
+.doctor-info {
+    padding: 20px;
+    text-align: left; /* Align text inside card to left */
+}
+
+.doctor-info .doctor-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 5px;
+}
+
+.doctor-info .doctor-specialty {
+    font-size: 14px;
+    color: #666666;
+    margin-bottom: 10px;
+}
+
+.doctor-info .doctor-availability {
+    font-size: 13px;
+    color: #888888;
+    margin-bottom: 15px;
+}
+
+.doctor-info .doctor-price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #eeeeee; /* Separator line */
+    padding-top: 15px;
+    margin-top: 15px;
+}
+
+.doctor-info .doctor-price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4c68ff; /* Blue for price */
+}
+
+.doctor-info .calendar-icon {
+    width: 24px; /* Size for calendar icon */
+    height: 24px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+.doctor-info .calendar-icon:hover {
+    opacity: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .doctor-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+    }
+}
+
+@media (max-width: 992px) {
+    .admin-doctors-page-container {
+        padding: 20px;
+    }
+    .admin-doctors-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .admin-doctors-header .header-right {
+        width: 100%;
+        justify-content: flex-end; /* Align buttons to right */
+    }
+    .doctor-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-doctors-header {
+        align-items: center;
+        text-align: center;
+    }
+    .admin-doctors-header .header-left h1 {
+        font-size: 24px;
+    }
+    .admin-doctors-header .header-left .total-doctors {
+        display: block; /* New line for total doctors */
+        margin-left: 0;
+        margin-top: 5px;
+    }
+    .admin-doctors-header .header-right {
+        justify-content: center; /* Center buttons */
+        flex-wrap: wrap; /* Allow buttons to wrap */
+    }
+    .doctor-grid {
+        grid-template-columns: 1fr; /* Single column on very small screens */
+    }
+    .doctor-card {
+        max-width: 350px; /* Constrain card width on single column */
+        margin: 0 auto; /* Center single column card */
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-doctors-page-container {
+        padding: 15px;
+    }
+    .admin-doctors-header button {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+    .doctor-info .doctor-name {
+        font-size: 17px;
+    }
+    .doctor-info .doctor-price {
+        font-size: 16px;
+    }
+}

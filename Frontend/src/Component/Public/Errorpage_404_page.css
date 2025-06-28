@@ -1,0 +1,166 @@
+
+.error-page-container {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center horizontally */
+    justify-content: flex-start; /* Align content to the top */
+    min-height: 100vh; /* Take full viewport height */
+    background-color: #f8faff; /* Light background color matching the image */
+    font-family: Arial, sans-serif; /* A common sans-serif font */
+    padding: 20px;
+    box-sizing: border-box;
+    /* Adding the subtle pattern background from the image */
+    background-image: url('../../assets/Homepage/Error.png'); /* You'll need to create/find a subtle background pattern image */
+    background-repeat: repeat;
+    background-size: 150px; /* Adjust as needed */
+    width: 1200px;
+    height: auto;
+}
+
+/* Header styling (Preclinic logo and text) */
+.error-header {
+    display: flex;
+    align-items: center;
+    margin-top: 50px; /* Space from the top of the page */
+    margin-bottom: 30px; /* Space before the main error content */
+}
+
+.error-header .preclinic-logo-error {
+    height: 40px; /* Adjust logo size */
+    margin-right: 10px;
+}
+
+.error-header span {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4c68ff; /* Blue color for Preclinic text */
+}
+
+/* Main error content area */
+.error-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background-color: #ffffff; /* White background for the main content area */
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+    padding: 40px 30px;
+    max-width: 600px; /* Max width for the content card */
+    width: 90%;
+}
+
+.page-not-found-text {
+    font-size: 16px;
+    color: #666666;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.error-illustration {
+    max-width: 100%; /* Ensure illustration scales down */
+    height: auto;
+    width: 400px; /* Set a specific width to match the image proportion */
+    margin-bottom: 30px;
+}
+
+.error-title {
+    font-size: 32px;
+    color: #333333;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.error-message {
+    font-size: 16px;
+    color: #666666;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    max-width: 450px; /* Constrain message width */
+}
+
+/* Back to Dashboard Button */
+.back-to-dashboard-button {
+    padding: 12px 25px;
+    background-color: #4c68ff; /* Blue button color */
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-to-dashboard-button:hover {
+    background-color: #3a52d9; /* Darker blue on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+}
+
+.back-to-dashboard-button .arrow-icon {
+    margin-right: 8px; /* Space between arrow and text */
+    font-size: 18px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .error-header {
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+
+    .error-header span {
+        font-size: 24px;
+    }
+
+    .error-content {
+        padding: 30px 20px;
+        width: 95%;
+    }
+
+    .error-illustration {
+        width: 300px;
+        margin-bottom: 20px;
+    }
+
+    .error-title {
+        font-size: 26px;
+    }
+
+    .error-message {
+        font-size: 14px;
+        margin-bottom: 25px;
+    }
+
+    .back-to-dashboard-button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .error-header {
+        margin-top: 20px;
+    }
+    .error-header .preclinic-logo-error {
+        height: 30px;
+    }
+    .error-header span {
+        font-size: 20px;
+    }
+    .error-content {
+        padding: 25px 15px;
+    }
+    .error-illustration {
+        width: 250px;
+    }
+    .error-title {
+        font-size: 22px;
+    }
+    .error-message {
+        font-size: 13px;
+    }
+}
