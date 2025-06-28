@@ -34,5 +34,40 @@ const register = async(request, response) => {
       });
 }
 
+// login { email address} -> database(poostgres)
 
-module.exports = { register  };
+const login = async(request, response) => {
+  const {email, password} = request.body;
+
+  //validation : check if fields are provided
+  if(!email || !password) {
+    return response.json({
+      status:false,
+      message:"Please enter both email and password.",
+    });
+  }
+
+  //check user in database
+  try{
+    const user = await Users.findOne({
+      where: {email, password},
+    });
+
+    if(user){
+      return response.json({
+        status:true,
+        message:"Invalid email or password.",
+      });
+    }
+
+  }catch (error){
+    console.error("Login error:", error);
+    return response.status(500).json({
+      status:false,
+      message:"Internal server error. PLease try again later.",
+    })
+  }
+}
+
+
+module.exports = { login, register };
