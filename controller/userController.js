@@ -14,7 +14,7 @@ const register = async(request, response) => {
         });
     }
 
-    if(password >= 5){
+    if(!(password >= 5)){
         return response.json({
             message:"Password must be more than 5 characters!!",
             status:false,
@@ -29,15 +29,15 @@ const register = async(request, response) => {
       })
 
       return response.json({
+        message:"account created sucessfully",
         status:true,
-        message:"account created sucessfully"
       });
 }
 
 // login { email address} -> database(poostgres)
 
 const login = async(request, response) => {
-  const {email, password} = request.body;
+  const {email, password} = await request.body;
 
   //validation : check if fields are provided
   if(!email || !password) {
