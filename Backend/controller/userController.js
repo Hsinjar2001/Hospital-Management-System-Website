@@ -1,5 +1,5 @@
 const {request, response } = require("express");
-const {Users} = require("../model/userSchema");
+const {Users} = require("../../model/userSchema");
 
 
 //register {username, email, password} -> database(postgres)

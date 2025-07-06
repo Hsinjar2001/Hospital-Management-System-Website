@@ -1,5 +1,5 @@
  const {DataTypes} = require('sequelize')
- const {sequelize} = require("../Database/db.js")
+ const {sequelize} = require("../Backend/Database/db.js")
 
  const Users = sequelize.define("users",{
     id: {
