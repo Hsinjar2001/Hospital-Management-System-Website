@@ -24,62 +24,30 @@ const AppointmentPage = () => {
   const isEditMode = Boolean(id);
   const watchedPatientId = watch('patientId');
 
-  // Sample patients data
-  const samplePatients = [
-    {
-      id: 'PAT-001',
-      name: 'John Doe',
-      phone: '+1 (555) 123-4567',
-      email: 'john.doe@email.com',
-      dateOfBirth: '1990-05-15',
-      bloodGroup: 'O+',
-      lastVisit: '2024-01-15'
-    },
-    {
-      id: 'PAT-002',
-      name: 'Jane Smith',
-      phone: '+1 (555) 987-6543',
-      email: 'jane.smith@email.com',
-      dateOfBirth: '1985-12-22',
-      bloodGroup: 'A+',
-      lastVisit: '2024-01-18'
-    },
-    {
-      id: 'PAT-003',
-      name: 'Robert Brown',
-      phone: '+1 (555) 456-7890',
-      email: 'robert.brown@email.com',
-      dateOfBirth: '2018-03-10',
-      bloodGroup: 'B+',
-      lastVisit: '2024-01-12'
-    }
-  ];
+  // Patients will be loaded from API
 
   // Load patients and appointment data
   useEffect(() => {
     const loadData = async () => {
       try {
-        setPatients(samplePatients);
-        
+        // Fetch real patients from API
+        const response = await patientsAPI.getAll();
+        const patientsData = response.data?.patients || [];
+        setPatients(patientsData);
+
         if (isEditMode) {
           // Load existing appointment data for editing
-          // This would normally come from an API call
-          const appointmentData = {
-            patientId: 'PAT-001',
-            appointmentDate: '2024-01-25',
-            appointmentTime: '10:00',
-            type: 'follow-up',
-            priority: 'high',
-            reason: 'Follow-up consultation',
-            notes: 'Patient needs to discuss test results'
-          };
-          
+          const appointmentResponse = await appointmentsAPI.getById(id);
+          const appointmentData = appointmentResponse.data;
+
           Object.keys(appointmentData).forEach(key => {
             setValue(key, appointmentData[key]);
           });
         }
       } catch (error) {
         console.error('Error loading data:', error);
+        // Set empty arrays on error
+        setPatients([]);
       }
     };
 

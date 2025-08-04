@@ -1,6 +1,7 @@
 // pages/Admindashboard/PatientsListPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { patientsAPI } from '../../services/api';
 
 const PatientsListPage = () => {
   const navigate = useNavigate();
@@ -17,181 +18,47 @@ const PatientsListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [patientsPerPage] = useState(10);
 
-  // Sample patients data
-  const samplePatients = [
-    {
-      id: 'PAT-2024-001',
-      firstName: 'John',
-      lastName: 'Doe',
-      fullName: 'John Doe',
-      email: 'john.doe@email.com',
-      phone: '+1 (555) 123-4567',
-      dateOfBirth: '1990-05-15',
-      age: 34,
-      gender: 'Male',
-      bloodGroup: 'O+',
-      status: 'Active',
-      primaryDoctor: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      lastVisit: '2024-01-15',
-      registrationDate: '2020-03-15',
-      totalAppointments: 24,
-      pendingBills: 850.00,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-002',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      fullName: 'Jane Smith',
-      email: 'jane.smith@email.com',
-      phone: '+1 (555) 987-6543',
-      dateOfBirth: '1985-12-22',
-      age: 39,
-      gender: 'Female',
-      bloodGroup: 'A+',
-      status: 'Active',
-      primaryDoctor: 'Dr. Michael Wilson',
-      department: 'Orthopedics',
-      lastVisit: '2024-01-18',
-      registrationDate: '2019-08-10',
-      totalAppointments: 18,
-      pendingBills: 0,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-003',
-      firstName: 'Robert',
-      lastName: 'Brown',
-      fullName: 'Robert Brown',
-      email: 'robert.brown@email.com',
-      phone: '+1 (555) 456-7890',
-      dateOfBirth: '2018-03-10',
-      age: 6,
-      gender: 'Male',
-      bloodGroup: 'B+',
-      status: 'Active',
-      primaryDoctor: 'Dr. Emily Davis',
-      department: 'Pediatrics',
-      lastVisit: '2024-01-12',
-      registrationDate: '2018-03-15',
-      totalAppointments: 32,
-      pendingBills: 120.00,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-004',
-      firstName: 'Lisa',
-      lastName: 'Anderson',
-      fullName: 'Lisa Anderson',
-      email: 'lisa.anderson@email.com',
-      phone: '+1 (555) 321-0987',
-      dateOfBirth: '1978-09-30',
-      age: 45,
-      gender: 'Female',
-      bloodGroup: 'AB-',
-      status: 'Inactive',
-      primaryDoctor: 'Dr. James Miller',
-      department: 'Dermatology',
-      lastVisit: '2023-11-20',
-      registrationDate: '2021-01-08',
-      totalAppointments: 8,
-      pendingBills: 0,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-005',
-      firstName: 'David',
-      lastName: 'Wilson',
-      fullName: 'David Wilson',
-      email: 'david.wilson@email.com',
-      phone: '+1 (555) 654-3210',
-      dateOfBirth: '1965-07-14',
-      age: 59,
-      gender: 'Male',
-      bloodGroup: 'O-',
-      status: 'Active',
-      primaryDoctor: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      lastVisit: '2024-01-20',
-      registrationDate: '2015-05-20',
-      totalAppointments: 56,
-      pendingBills: 1200.00,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-006',
-      firstName: 'Maria',
-      lastName: 'Garcia',
-      fullName: 'Maria Garcia',
-      email: 'maria.garcia@email.com',
-      phone: '+1 (555) 789-0123',
-      dateOfBirth: '1992-11-08',
-      age: 32,
-      gender: 'Female',
-      bloodGroup: 'A-',
-      status: 'Active',
-      primaryDoctor: 'Dr. Anna Rodriguez',
-      department: 'Gynecology',
-      lastVisit: '2024-01-16',
-      registrationDate: '2022-02-14',
-      totalAppointments: 12,
-      pendingBills: 350.00,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-007',
-      firstName: 'Michael',
-      lastName: 'Johnson',
-      fullName: 'Michael Johnson',
-      email: 'michael.johnson@email.com',
-      phone: '+1 (555) 012-3456',
-      dateOfBirth: '1988-04-25',
-      age: 36,
-      gender: 'Male',
-      bloodGroup: 'B-',
-      status: 'Active',
-      primaryDoctor: 'Dr. Robert Chen',
-      department: 'Neurology',
-      lastVisit: '2024-01-14',
-      registrationDate: '2020-09-12',
-      totalAppointments: 28,
-      pendingBills: 0,
-      profileImage: null
-    },
-    {
-      id: 'PAT-2024-008',
-      firstName: 'Sarah',
-      lastName: 'Taylor',
-      fullName: 'Sarah Taylor',
-      email: 'sarah.taylor@email.com',
-      phone: '+1 (555) 234-5678',
-      dateOfBirth: '2010-12-03',
-      age: 14,
-      gender: 'Female',
-      bloodGroup: 'O+',
-      status: 'Active',
-      primaryDoctor: 'Dr. Emily Davis',
-      department: 'Pediatrics',
-      lastVisit: '2024-01-17',
-      registrationDate: '2010-12-15',
-      totalAppointments: 42,
-      pendingBills: 75.00,
-      profileImage: null
-    }
-  ];
+  // Load patients data from API
+  useEffect(() => {
+    const loadPatients = async () => {
+      setLoading(true);
+      try {
+        const response = await patientsAPI.getAll();
+        if (response.success && response.data) {
+          setPatients(response.data.patients || []);
+          setFilteredPatients(response.data.patients || []);
+        } else {
+          console.error('Failed to load patients:', response.error);
+          setPatients([]);
+          setFilteredPatients([]);
+        }
+      } catch (error) {
+        console.error('Error loading patients:', error);
+        setPatients([]);
+        setFilteredPatients([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPatients();
+  }, []);
 
   // Load patients
   useEffect(() => {
     const loadPatients = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPatients(samplePatients);
-        setFilteredPatients(samplePatients);
+        // Fetch real patients from API
+        const response = await patientsAPI.getAll();
+        const patientsData = response.data?.patients || [];
+        setPatients(patientsData);
+        setFilteredPatients(patientsData);
       } catch (error) {
         console.error('Error loading patients:', error);
+        // Set empty array on error
+        setPatients([]);
+        setFilteredPatients([]);
       } finally {
         setLoading(false);
       }

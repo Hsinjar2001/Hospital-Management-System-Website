@@ -12,14 +12,51 @@ const Sidebar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const [expandedMenus, setExpandedMenus] = useState({});
+  const [userDataVersion, setUserDataVersion] = useState(0); // Force re-render when user data updates
 
-  // Sample user data (replace with actual user context)
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: userRole,
-    avatar: null
+  // Get real user data from localStorage/sessionStorage
+  const getUser = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: userData.role,
+          avatar: userData.profileImage || null,
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+    }
+    // Fallback to sample data if no user found
+    return {
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: userRole,
+      avatar: null
+    };
   };
+
+  // Get user data (re-computed when userDataVersion changes)
+  const user = React.useMemo(() => getUser(), [userDataVersion]);
+
+  // Listen for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      // Force re-render by updating version
+      setUserDataVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   // Navigation configuration based on role
   const getNavigationConfig = () => {
@@ -45,8 +82,7 @@ const Sidebar = ({
               badge: null,
               subItems: [
                 { name: 'All Patients', path: '/admin/patients/list', icon: '📋' },
-                { name: 'Add Patient', path: '/admin/patients/add', icon: '➕' },
-                { name: 'Patient Records', path: '/admin/patients/records', icon: '📁' }
+                { name: 'Add Patient', path: '/admin/patients/add', icon: '➕' }
               ]
             },
             {
@@ -69,7 +105,6 @@ const Sidebar = ({
               badge: '12',
               subItems: [
                 { name: 'All Appointments', path: '/admin/appointments/list', icon: '📋' },
-                { name: 'Schedule New', path: '/admin/appointments/add', icon: '➕' },
                 { name: 'Calendar View', path: '/admin/appointments/calendar', icon: '📅' }
               ]
             },
@@ -453,7 +488,18 @@ const Sidebar = ({
                 <p className="text-xs text-gray-500 truncate capitalize">{user.role}</p>
               </div>
               <button
-                onClick={() => navigate('/auth/login')}
+                onClick={() => {
+                  // Clear all stored data
+                  localStorage.removeItem('hospitalUser');
+                  localStorage.removeItem('hospitalToken');
+                  localStorage.removeItem('token');
+                  sessionStorage.removeItem('hospitalUser');
+                  sessionStorage.removeItem('hospitalToken');
+                  sessionStorage.removeItem('token');
+
+                  alert('✅ Logged out successfully!');
+                  window.location.href = '/auth/login';
+                }}
                 className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
                 title="Logout"
               >

@@ -2,11 +2,57 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { departmentsAPI, doctorsAPI } from '../../services/api';
+
+// Error Boundary Component
+class DepartmentErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('DepartmentPage Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Something went wrong</h3>
+            <p className="text-gray-600 mb-4">
+              There was an error loading the Department Management page. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const DepartmentPage = () => {
   const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
   const [filteredDepartments, setFilteredDepartments] = useState([]);
+  const [availableDoctors, setAvailableDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -17,177 +63,19 @@ const DepartmentPage = () => {
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm();
 
-  // Sample departments data
-  const sampleDepartments = [
-    {
-      id: 'DEPT-001',
-      name: 'Cardiology',
-      description: 'Specialized care for heart and cardiovascular system conditions',
-      head: 'Dr. Sarah Johnson',
-      headId: 'DOC-001',
-      totalDoctors: 8,
-      totalPatients: 245,
-      totalBeds: 25,
-      availableBeds: 5,
-      status: 'active',
-      location: 'Wing A, Floor 2',
-      phone: '+1 (555) 201-0001',
-      email: 'cardiology@hospital.com',
-      budget: 250000,
-      revenue: 450000,
-      establishedDate: '2010-01-15',
-      operatingHours: '24/7',
-      emergencyServices: true,
-      specialties: ['Interventional Cardiology', 'Electrophysiology', 'Heart Failure'],
-      equipment: ['ECG Machines', 'Cardiac Catheterization Lab', 'Echocardiography'],
-      createdAt: '2010-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'DEPT-002',
-      name: 'Neurology',
-      description: 'Comprehensive neurological care for brain and nervous system disorders',
-      head: 'Dr. Michael Wilson',
-      headId: 'DOC-002',
-      totalDoctors: 6,
-      totalPatients: 189,
-      totalBeds: 20,
-      availableBeds: 8,
-      status: 'active',
-      location: 'Wing B, Floor 3',
-      phone: '+1 (555) 201-0002',
-      email: 'neurology@hospital.com',
-      budget: 200000,
-      revenue: 320000,
-      establishedDate: '2012-03-20',
-      operatingHours: '8:00 AM - 8:00 PM',
-      emergencyServices: true,
-      specialties: ['Stroke Care', 'Epilepsy', 'Movement Disorders'],
-      equipment: ['MRI Scanner', 'EEG Machines', 'Neurological Testing Equipment'],
-      createdAt: '2012-03-20T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'DEPT-003',
-      name: 'Orthopedics',
-      description: 'Musculoskeletal care including bones, joints, and spine treatment',
-      head: 'Dr. Emily Davis',
-      headId: 'DOC-003',
-      totalDoctors: 10,
-      totalPatients: 312,
-      totalBeds: 30,
-      availableBeds: 12,
-      status: 'active',
-      location: 'Wing C, Floor 1-2',
-      phone: '+1 (555) 201-0003',
-      email: 'orthopedics@hospital.com',
-      budget: 300000,
-      revenue: 520000,
-      establishedDate: '2008-06-10',
-      operatingHours: '6:00 AM - 10:00 PM',
-      emergencyServices: true,
-      specialties: ['Joint Replacement', 'Sports Medicine', 'Spine Surgery'],
-      equipment: ['X-Ray Machines', 'Arthroscopy Equipment', 'Physical Therapy'],
-      createdAt: '2008-06-10T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'DEPT-004',
-      name: 'Pediatrics',
-      description: 'Specialized medical care for infants, children, and adolescents',
-      head: 'Dr. James Miller',
-      headId: 'DOC-004',
-      totalDoctors: 12,
-      totalPatients: 428,
-      totalBeds: 35,
-      availableBeds: 15,
-      status: 'active',
-      location: 'Wing D, Floor 1-3',
-      phone: '+1 (555) 201-0004',
-      email: 'pediatrics@hospital.com',
-      budget: 180000,
-      revenue: 280000,
-      establishedDate: '2005-09-01',
-      operatingHours: '24/7',
-      emergencyServices: true,
-      specialties: ['Neonatal Care', 'Pediatric Surgery', 'Child Development'],
-      equipment: ['Pediatric Monitors', 'Incubators', 'Child-friendly Equipment'],
-      createdAt: '2005-09-01T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'DEPT-005',
-      name: 'Emergency Medicine',
-      description: 'Critical emergency and trauma care services available 24/7',
-      head: 'Dr. Anna Rodriguez',
-      headId: 'DOC-005',
-      totalDoctors: 15,
-      totalPatients: 156,
-      totalBeds: 40,
-      availableBeds: 8,
-      status: 'active',
-      location: 'Ground Floor, Main Building',
-      phone: '+1 (555) 201-0005',
-      email: 'emergency@hospital.com',
-      budget: 400000,
-      revenue: 600000,
-      establishedDate: '2000-01-01',
-      operatingHours: '24/7',
-      emergencyServices: true,
-      specialties: ['Trauma Care', 'Critical Care', 'Emergency Surgery'],
-      equipment: ['Trauma Bay', 'Resuscitation Equipment', 'Emergency OR'],
-      createdAt: '2000-01-01T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'DEPT-006',
-      name: 'Radiology',
-      description: 'Advanced medical imaging and diagnostic services',
-      head: 'Dr. Robert Chen',
-      headId: 'DOC-006',
-      totalDoctors: 4,
-      totalPatients: 89,
-      totalBeds: 0,
-      availableBeds: 0,
-      status: 'maintenance',
-      location: 'Basement Level, Imaging Center',
-      phone: '+1 (555) 201-0006',
-      email: 'radiology@hospital.com',
-      budget: 150000,
-      revenue: 220000,
-      establishedDate: '2015-11-20',
-      operatingHours: '6:00 AM - 12:00 AM',
-      emergencyServices: false,
-      specialties: ['CT Scans', 'MRI', 'Ultrasound', 'X-Ray'],
-      equipment: ['MRI Machine', 'CT Scanner', 'Ultrasound Machines', 'Digital X-Ray'],
-      createdAt: '2015-11-20T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    }
-  ];
-
-  // Sample doctors for dropdown
-  const availableDoctors = [
-    { id: 'DOC-001', name: 'Dr. Sarah Johnson' },
-    { id: 'DOC-002', name: 'Dr. Michael Wilson' },
-    { id: 'DOC-003', name: 'Dr. Emily Davis' },
-    { id: 'DOC-004', name: 'Dr. James Miller' },
-    { id: 'DOC-005', name: 'Dr. Anna Rodriguez' },
-    { id: 'DOC-006', name: 'Dr. Robert Chen' },
-    { id: 'DOC-007', name: 'Dr. Lisa Thompson' },
-    { id: 'DOC-008', name: 'Dr. David Lee' }
-  ];
-
-  // Load departments
+  // Load departments data from API
   useEffect(() => {
     const loadDepartments = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setDepartments(sampleDepartments);
-        setFilteredDepartments(sampleDepartments);
+        const response = await departmentsAPI.getAll();
+        const departmentsData = response.data?.departments || [];
+        setDepartments(departmentsData);
+        setFilteredDepartments(departmentsData);
       } catch (error) {
         console.error('Error loading departments:', error);
+        setDepartments([]);
+        setFilteredDepartments([]);
       } finally {
         setLoading(false);
       }
@@ -202,21 +90,43 @@ const DepartmentPage = () => {
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(dept => 
-        dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dept.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dept.head.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        dept.location.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(dept =>
+        (dept.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.head || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (dept.location || '').toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(dept => dept.status === statusFilter);
+      filtered = filtered.filter(dept => (dept.status || 'active') === statusFilter);
     }
 
     setFilteredDepartments(filtered);
   }, [departments, searchTerm, statusFilter]);
+
+  // Load available doctors for department head selection
+  useEffect(() => {
+    const loadAvailableDoctors = async () => {
+      try {
+        // Fetch real doctors from API
+        const response = await doctorsAPI.getAll();
+        const doctorsData = response.data?.doctors || [];
+        const formattedDoctors = doctorsData.map(doctor => ({
+          id: doctor.id,
+          name: `Dr. ${doctor.firstName} ${doctor.lastName}`
+        }));
+        setAvailableDoctors(formattedDoctors);
+      } catch (error) {
+        console.error('Error loading doctors:', error);
+        // Set empty array on error
+        setAvailableDoctors([]);
+      }
+    };
+
+    loadAvailableDoctors();
+  }, []);
 
   // Handle department submission (Add/Edit)
   const onSubmit = async (data) => {
@@ -297,16 +207,37 @@ const DepartmentPage = () => {
   // Calculate total statistics
   const totalStats = {
     totalDepartments: departments.length,
-    activeDepartments: departments.filter(d => d.status === 'active').length,
-    totalDoctors: departments.reduce((sum, dept) => sum + dept.totalDoctors, 0),
-    totalPatients: departments.reduce((sum, dept) => sum + dept.totalPatients, 0),
-    totalBeds: departments.reduce((sum, dept) => sum + dept.totalBeds, 0),
-    availableBeds: departments.reduce((sum, dept) => sum + dept.availableBeds, 0),
-    totalRevenue: departments.reduce((sum, dept) => sum + dept.revenue, 0)
+    activeDepartments: departments.filter(d => (d.status || 'active') === 'active').length,
+    totalDoctors: departments.reduce((sum, dept) => sum + (dept.totalDoctors || 0), 0),
+    totalPatients: departments.reduce((sum, dept) => sum + (dept.totalPatients || 0), 0),
+    totalBeds: departments.reduce((sum, dept) => sum + (dept.totalBeds || 0), 0),
+    availableBeds: departments.reduce((sum, dept) => sum + (dept.availableBeds || 0), 0),
+    totalRevenue: departments.reduce((sum, dept) => sum + (dept.revenue || 0), 0)
   };
 
-  return (
-    <div className="space-y-6">
+  // Add error handling for render
+  try {
+    // Early return if still loading or no departments data
+    if (loading) {
+      return (
+        <div className="space-y-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -406,13 +337,21 @@ const DepartmentPage = () => {
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-600">Occupancy Rate</span>
             <span className="text-sm font-medium">
-              {Math.round(((totalStats.totalBeds - totalStats.availableBeds) / totalStats.totalBeds) * 100)}%
+              {totalStats.totalBeds > 0
+                ? Math.round(((totalStats.totalBeds - totalStats.availableBeds) / totalStats.totalBeds) * 100)
+                : 0
+              }%
             </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
-              className="bg-blue-600 h-3 rounded-full" 
-              style={{ width: `${Math.round(((totalStats.totalBeds - totalStats.availableBeds) / totalStats.totalBeds) * 100)}%` }}
+            <div
+              className="bg-blue-600 h-3 rounded-full"
+              style={{
+                width: `${totalStats.totalBeds > 0
+                  ? Math.round(((totalStats.totalBeds - totalStats.availableBeds) / totalStats.totalBeds) * 100)
+                  : 0
+                }%`
+              }}
             ></div>
           </div>
         </div>
@@ -491,39 +430,39 @@ const DepartmentPage = () => {
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">{department.name}</h3>
                     <p className="text-sm text-gray-600 line-clamp-2">{department.description}</p>
                   </div>
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(department.status)}`}>
-                    {department.status.charAt(0).toUpperCase() + department.status.slice(1)}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(department.status || 'active')}`}>
+                    {(department.status || 'active').charAt(0).toUpperCase() + (department.status || 'active').slice(1)}
                   </span>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Department Head:</span>
-                    <span className="font-medium text-gray-900">{department.head}</span>
+                    <span className="font-medium text-gray-900">{department.head || 'Not assigned'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Location:</span>
-                    <span className="font-medium text-gray-900">{department.location}</span>
+                    <span className="font-medium text-gray-900">{department.location || 'Not specified'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Doctors:</span>
-                    <span className="font-medium text-gray-900">{department.totalDoctors}</span>
+                    <span className="font-medium text-gray-900">{department.totalDoctors || 0}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Patients:</span>
-                    <span className="font-medium text-gray-900">{department.totalPatients}</span>
+                    <span className="font-medium text-gray-900">{department.totalPatients || 0}</span>
                   </div>
-                  {department.totalBeds > 0 && (
+                  {(department.totalBeds || 0) > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Beds Available:</span>
                       <span className="font-medium text-gray-900">
-                        {department.availableBeds}/{department.totalBeds}
+                        {department.availableBeds || 0}/{department.totalBeds || 0}
                       </span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Revenue:</span>
-                    <span className="font-medium text-green-600">${department.revenue.toLocaleString()}</span>
+                    <span className="font-medium text-green-600">${(department.revenue || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
@@ -553,7 +492,7 @@ const DepartmentPage = () => {
                       </button>
                     </div>
                     <select
-                      value={department.status}
+                      value={department.status || 'active'}
                       onChange={(e) => handleStatusChange(department.id, e.target.value)}
                       className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
@@ -1022,8 +961,8 @@ const DepartmentPage = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Status</label>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedDepartment.status)}`}>
-                        {selectedDepartment.status.charAt(0).toUpperCase() + selectedDepartment.status.slice(1)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedDepartment.status || 'active')}`}>
+                        {(selectedDepartment.status || 'active').charAt(0).toUpperCase() + (selectedDepartment.status || 'active').slice(1)}
                       </span>
                     </div>
                   </div>
@@ -1151,7 +1090,38 @@ const DepartmentPage = () => {
         </div>
       )}
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('DepartmentPage render error:', error);
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Departments</h3>
+          <p className="text-gray-600 mb-4">
+            There was an error loading the departments. Please try refreshing the page.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
 
-export default DepartmentPage;
+// Wrap component with error boundary
+const DepartmentPageWithErrorBoundary = () => (
+  <DepartmentErrorBoundary>
+    <DepartmentPage />
+  </DepartmentErrorBoundary>
+);
+
+export default DepartmentPageWithErrorBoundary;

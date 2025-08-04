@@ -1,1 +1,58 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Layout Spacing */
+@layer components {
+
+
+  .layout-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  .sidebar-collapsed {
+    @apply lg:ml-16;
+  }
+
+
+  .content-padding {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+
+  .layout-main {
+    @apply flex-1 overflow-auto;
+  }
+
+  /* Dashboard Components */
+  .dashboard-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-100 p-4;
+  }
+
+  .dashboard-card-compact {
+    @apply bg-white rounded-lg shadow-sm border border-gray-100 p-3;
+  }
+
+  .dashboard-grid {
+    @apply grid gap-4;
+  }
+
+  .dashboard-grid-compact {
+    @apply grid gap-3;
+  }
+
+  .stat-card-icon {
+    @apply w-10 h-10 rounded-lg flex items-center justify-center;
+  }
+
+  .stat-card-value {
+    @apply text-xl font-bold text-gray-900;
+  }
+
+  .dashboard-section {
+    @apply space-y-4;
+  }
+
+  .dashboard-section-compact {
+    @apply space-y-3;
+  }
+}

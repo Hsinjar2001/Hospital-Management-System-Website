@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 
@@ -8,102 +8,69 @@ const DoctorLayout = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [userDataVersion, setUserDataVersion] = useState(0); // Force re-render when user data updates
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Sample doctor user data (replace with actual user context)
-  const doctorUser = {
-    name: 'Dr. Sarah Johnson',
-    email: 'sarah.johnson@hospital.com',
-    role: 'Cardiologist',
-    department: 'Cardiology',
-    employeeId: 'DOC-001',
-    avatar: null,
-    lastLogin: '2024-01-15T08:30:00Z',
-    licenseNumber: 'MD123456',
-    yearsOfExperience: 12,
-    currentShift: '08:00 - 16:00',
-    status: 'available' // available, busy, in-surgery, off-duty
+  // Get real doctor user data from localStorage/sessionStorage
+  const getDoctorUser = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: userData.specialty || 'General Practitioner',
+          department: userData.department || 'General Medicine',
+          employeeId: `DOC-${userData.id.toString().padStart(3, '0')}`,
+          avatar: userData.profileImage || null,
+          lastLogin: userData.lastLoginAt || new Date().toISOString(),
+          licenseNumber: userData.licenseNumber || 'Not specified',
+          yearsOfExperience: userData.yearsOfExperience || 'Not specified',
+          currentShift: userData.currentShift || '09:00 - 17:00',
+          status: userData.status || 'available',
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+      }
+    } catch (error) {
+      console.error('Error getting doctor user data:', error);
+    }
+    // Return null if no user found - require login
+    return null;
   };
+
+  // Get doctor user data (re-computed when userDataVersion changes)
+  const doctorUser = React.useMemo(() => getDoctorUser(), [userDataVersion]);
+
+  // Redirect to login if no user found
+  useEffect(() => {
+    if (!doctorUser) {
+      navigate('/auth/login');
+    }
+  }, [doctorUser, navigate]);
 
   // Logout function
   const handleLogout = () => {
+    // Clear all stored data
     localStorage.removeItem('hospitalUser');
+    localStorage.removeItem('hospitalToken');
+    localStorage.removeItem('token');
     sessionStorage.removeItem('hospitalUser');
+    sessionStorage.removeItem('hospitalToken');
+    sessionStorage.removeItem('token');
+
     alert('✅ Logged out successfully!');
     window.location.href = '/auth/login';
   };
 
-  // Sample doctor notifications
-  const sampleNotifications = [
-    {
-      id: 1,
-      title: 'Urgent: Patient Consultation',
-      message: 'Room 205 - Patient requires immediate attention',
-      time: '2 minutes ago',
-      type: 'urgent',
-      read: false,
-      priority: 'high',
-      patientId: 'PAT-001',
-      room: '205'
-    },
-    {
-      id: 2,
-      title: 'Lab Results Available',
-      message: 'Blood work results for John Doe are ready',
-      time: '15 minutes ago',
-      type: 'lab-result',
-      read: false,
-      priority: 'medium',
-      patientId: 'PAT-002'
-    },
-    {
-      id: 3,
-      title: 'Appointment Reminder',
-      message: 'Next appointment in 30 minutes - Room 301',
-      time: '30 minutes ago',
-      type: 'appointment',
-      read: true,
-      priority: 'medium',
-      patientId: 'PAT-003',
-      room: '301'
-    },
-    {
-      id: 4,
-      title: 'Surgery Schedule Update',
-      message: 'Tomorrow\'s surgery moved to 10:00 AM',
-      time: '1 hour ago',
-      type: 'schedule',
-      read: true,
-      priority: 'high'
-    },
-    {
-      id: 5,
-      title: 'Prescription Alert',
-      message: 'Drug interaction alert for patient in Room 150',
-      time: '2 hours ago',
-      type: 'prescription',
-      read: false,
-      priority: 'high',
-      patientId: 'PAT-004',
-      room: '150'
-    }
-  ];
 
-  // Today's statistics
-  const todayStats = {
-    appointmentsToday: 8,
-    appointmentsCompleted: 5,
-    patientsWaiting: 3,
-    emergencyCalls: 1,
-    surgeries: 2,
-    consultations: 6
-  };
 
-  // Initialize notifications and time
+
+
+  // Initialize time
   useEffect(() => {
-    setNotifications(sampleNotifications);
-    
     // Update time every minute
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
@@ -116,6 +83,20 @@ const DoctorLayout = ({ children }) => {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Listen for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      // Force re-render by updating version
+      setUserDataVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   // Handle notification click
   const handleNotificationClick = (notification) => {
@@ -224,8 +205,8 @@ const DoctorLayout = ({ children }) => {
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      <div className={`flex-1 flex flex-col layout-transition sidebar-content-gap ${
+        sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'
       }`}>
         
         {/* Top Header */}
@@ -272,56 +253,23 @@ const DoctorLayout = ({ children }) => {
             {/* Right Side */}
             <div className="flex items-center space-x-4">
               
-              {/* Today's Stats (Desktop) */}
-              <div className="hidden xl:flex items-center space-x-6 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  <span>Today: {todayStats.appointmentsCompleted}/{todayStats.appointmentsToday}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                  <span>Waiting: {todayStats.patientsWaiting}</span>
-                </div>
-              </div>
 
-              {/* Quick Actions */}
-              <div className="hidden md:flex items-center space-x-2">
-                <button
-                  onClick={() => navigate('/doctor/appointments')}
-                  className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
-                >
-                  View Appointments
-                </button>
-                <button
-                  onClick={() => navigate('/doctor/prescriptions')}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                >
-                  Write Prescription
-                </button>
-              </div>
 
-              {/* Emergency Button */}
-              <button
-                onClick={() => navigate('/doctor/emergency')}
-                className="p-2 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
-                title="Emergency"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </button>
+
+
+
 
               {/* Notifications */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5v10z" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className={`absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center ${
+                    <span className={`absolute -top-1 -right-1 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium ${
                       urgentCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
                     }`}>
                       {unreadCount > 9 ? '9+' : unreadCount}
@@ -395,7 +343,7 @@ const DoctorLayout = ({ children }) => {
                 )}
               </div>
 
-              {/* Doctor Profile with Logout Button */}
+              {/* Doctor Profile */}
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <div className="flex items-center space-x-2">
@@ -416,66 +364,21 @@ const DoctorLayout = ({ children }) => {
                   </div>
                 </button>
 
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                >
-                  Logout
-                </button>
+
               </div>
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          {/* Status Bar */}
-          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-6 text-gray-600">
-                <span className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${getStatusColor(doctorUser.status)}`}></div>
-                  Status: {getStatusText(doctorUser.status)}
-                </span>
-                <span>|</span>
-                <span>Shift: {doctorUser.currentShift}</span>
-                <span>|</span>
-                <span>Department: {doctorUser.department}</span>
-              </div>
-              
-              <div className="flex items-center space-x-4 text-gray-600">
-                <span>Current Time: {currentTime.toLocaleTimeString()}</span>
-                <span>|</span>
-                <span>License: {doctorUser.licenseNumber}</span>
-              </div>
-            </div>
-          </div>
+        <main className="layout-main">
 
-          {/* Quick Stats Bar (Mobile) */}
-          <div className="xl:hidden bg-green-50 border-b border-green-200 px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-around text-sm">
-              <div className="text-center">
-                <span className="block font-semibold text-green-900">{todayStats.appointmentsCompleted}</span>
-                <span className="text-green-700">Completed</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-orange-900">{todayStats.patientsWaiting}</span>
-                <span className="text-orange-700">Waiting</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-blue-900">{todayStats.appointmentsToday}</span>
-                <span className="text-blue-700">Total Today</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-purple-900">{todayStats.surgeries}</span>
-                <span className="text-purple-700">Surgeries</span>
-              </div>
-            </div>
-          </div>
+
+
+
 
           {/* Page Content */}
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="content-padding">
             {children}
           </div>
         </main>
@@ -489,10 +392,7 @@ const DoctorLayout = ({ children }) => {
               <button className="hover:text-gray-900 transition-colors">
                 Medical Guidelines
               </button>
-              <span>|</span>
-              <button className="hover:text-gray-900 transition-colors">
-                Emergency Protocols
-              </button>
+
             </div>
             
             <div className="flex items-center space-x-4">

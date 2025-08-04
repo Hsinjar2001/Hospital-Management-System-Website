@@ -10,20 +10,58 @@ const Navbar = () => {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [userDataVersion, setUserDataVersion] = useState(0); // Force re-render when user data updates
   
   // Refs for dropdown menus
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Sample user data (replace with actual user context)
-  const user = {
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'admin',
-    avatar: null,
-    isAuthenticated: true
+  // Get real user data from localStorage/sessionStorage
+  const getUser = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: userData.role,
+          avatar: userData.profileImage || null,
+          isAuthenticated: true,
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+    }
+    // Fallback to sample data if no user found
+    return {
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'admin',
+      avatar: null,
+      isAuthenticated: false
+    };
   };
+
+  // Get user data (re-computed when userDataVersion changes)
+  const user = React.useMemo(() => getUser(), [userDataVersion]);
+
+  // Listen for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      // Force re-render by updating version
+      setUserDataVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   // Sample notifications
   const notifications = [
@@ -203,13 +241,13 @@ const Navbar = () => {
                 <div className="relative" ref={notificationRef}>
                   <button
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                    className="relative p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
+                    className="relative p-2 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full transition-colors"
                   >
-                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5v10z" />
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                     </svg>
                     {unreadNotifications > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
                         {unreadNotifications > 9 ? '9+' : unreadNotifications}
                       </span>
                     )}

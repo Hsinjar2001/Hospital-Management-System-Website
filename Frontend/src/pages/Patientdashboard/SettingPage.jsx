@@ -1,12 +1,15 @@
 // pages/Patientdashboard/SettingPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { patientsAPI, usersAPI } from '../../services/api';
 
 const SettingPage = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [profileImage, setProfileImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState(null);
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     smsNotifications: false,
@@ -23,31 +26,31 @@ const SettingPage = () => {
     dataExport: true
   });
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({
     defaultValues: {
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john.doe@email.com',
-      phone: '+1 (555) 123-4567',
-      dateOfBirth: '1990-05-15',
-      gender: 'male',
-      bloodGroup: 'O+',
-      address: '123 Main Street, Apt 4B',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'United States',
-      emergencyContactName: 'Jane Doe',
-      emergencyContactPhone: '+1 (555) 987-6543',
-      emergencyContactRelation: 'Spouse',
-      allergies: 'Penicillin, Shellfish',
-      medicalConditions: 'Hypertension, Type 2 Diabetes',
-      currentMedications: 'Lisinopril 10mg daily, Metformin 500mg twice daily',
-      height: '175',
-      weight: '70',
-      insuranceProvider: 'Blue Cross Blue Shield',
-      policyNumber: 'BC123456789',
-      groupNumber: 'GRP001'
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dateOfBirth: '',
+      gender: '',
+      bloodGroup: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: '',
+      emergencyContactName: '',
+      emergencyContactPhone: '',
+      emergencyContactRelation: '',
+      allergies: '',
+      medicalConditions: '',
+      currentMedications: '',
+      height: '',
+      weight: '',
+      insuranceProvider: '',
+      policyNumber: '',
+      groupNumber: ''
     }
   });
 
@@ -63,14 +66,160 @@ const SettingPage = () => {
     { id: 'security', name: 'Security', icon: '🔐' }
   ];
 
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  // Load user data from localStorage and API
+  const loadUserData = async () => {
+    try {
+      setLoading(true);
+
+      // Get user data from localStorage
+      const storedUser = localStorage.getItem('hospitalUser') || localStorage.getItem('token');
+      if (storedUser) {
+        let user;
+        try {
+          user = JSON.parse(storedUser);
+        } catch {
+          // If it's just a token, we'll need to fetch user data from API
+          const response = await usersAPI.getProfile();
+          if (response.success) {
+            user = response.data.user;
+          }
+        }
+
+        if (user) {
+          setUserData(user);
+
+          // Update form with real user data
+          const formData = {
+            firstName: user.firstName || user.first_name || '',
+            lastName: user.lastName || user.last_name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            dateOfBirth: user.dateOfBirth || user.date_of_birth || '',
+            gender: user.gender || '',
+            bloodGroup: user.bloodGroup || user.blood_group || '',
+            address: user.address || '',
+            city: user.city || '',
+            state: user.state || '',
+            zipCode: user.zipCode || user.zip_code || '',
+            country: user.country || '',
+            emergencyContactName: user.emergencyContactName || user.emergency_contact_name || '',
+            emergencyContactPhone: user.emergencyContactPhone || user.emergency_contact_phone || '',
+            emergencyContactRelation: user.emergencyContactRelation || user.emergency_contact_relation || '',
+            allergies: user.allergies || '',
+            medicalConditions: user.medicalConditions || user.medical_conditions || '',
+            currentMedications: user.currentMedications || user.current_medications || '',
+            height: user.height || '',
+            weight: user.weight || '',
+            insuranceProvider: user.insuranceProvider || user.insurance_provider || '',
+            policyNumber: user.policyNumber || user.policy_number || '',
+            groupNumber: user.groupNumber || user.group_number || ''
+          };
+
+          // Set form values
+          Object.keys(formData).forEach(key => {
+            setValue(key, formData[key]);
+          });
+
+          // Set profile image if exists
+          if (user.profileImage || user.profile_image) {
+            setImagePreview(user.profileImage || user.profile_image);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle profile form submission
   const onSubmitProfile = async (data) => {
     try {
-      console.log('Profile data:', data);
-      alert('✅ Profile updated successfully!');
+      setLoading(true);
+
+      // Prepare data for API
+      const updateData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        country: data.country,
+        // Patient-specific data
+        bloodGroup: data.bloodGroup,
+        emergencyContactName: data.emergencyContactName,
+        emergencyContactPhone: data.emergencyContactPhone,
+        emergencyContactRelation: data.emergencyContactRelation,
+        allergies: data.allergies,
+        medicalConditions: data.medicalConditions,
+        currentMedications: data.currentMedications,
+        height: data.height,
+        weight: data.weight,
+        insuranceProvider: data.insuranceProvider,
+        policyNumber: data.policyNumber,
+        groupNumber: data.groupNumber
+      };
+
+      // Add profile image if uploaded
+      if (profileImage) {
+        const formData = new FormData();
+        Object.keys(updateData).forEach(key => {
+          formData.append(key, updateData[key]);
+        });
+        formData.append('profileImage', profileImage);
+        updateData.profileImage = profileImage;
+      }
+
+      // Debug: Log the data being sent
+      console.log('Sending update data:', updateData);
+
+      // Update user profile via API
+      const response = await usersAPI.updateProfile(updateData);
+
+      console.log('API Response:', response);
+
+      if (response.success) {
+        // Update localStorage with new data
+        const storedUser = localStorage.getItem('hospitalUser');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          const updatedUser = { ...user, ...updateData };
+          localStorage.setItem('hospitalUser', JSON.stringify(updatedUser));
+
+          // Dispatch custom event to notify other components
+          window.dispatchEvent(new CustomEvent('userDataUpdated', {
+            detail: updatedUser
+          }));
+        }
+
+        // Update local state
+        setUserData(prev => ({ ...prev, ...updateData }));
+
+        // Show success message
+        alert('✅ Profile updated successfully!');
+
+        // Reload user data to ensure consistency
+        await loadUserData();
+      } else {
+        throw new Error(response.error || 'Failed to update profile');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('❌ Failed to update profile. Please try again.');
+      const errorMessage = error.message || 'Failed to update profile. Please try again.';
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,13 +230,27 @@ const SettingPage = () => {
         alert('❌ New passwords do not match!');
         return;
       }
-      console.log('Password change data:', data);
-      setShowPasswordModal(false);
-      resetPassword();
-      alert('✅ Password changed successfully!');
+
+      setLoading(true);
+
+      // Update password via API
+      const response = await usersAPI.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword
+      });
+
+      if (response.success) {
+        setShowPasswordModal(false);
+        resetPassword();
+        alert('✅ Password changed successfully!');
+      } else {
+        throw new Error(response.error || 'Failed to change password');
+      }
     } catch (error) {
       console.error('Error changing password:', error);
       alert('❌ Failed to change password. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,19 +268,73 @@ const SettingPage = () => {
   };
 
   // Handle notification settings
-  const handleNotificationChange = (key) => {
-    setNotifications(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
+  const handleNotificationChange = async (key) => {
+    try {
+      const newValue = !notifications[key];
+
+      // Update local state immediately for better UX
+      setNotifications(prev => ({
+        ...prev,
+        [key]: newValue
+      }));
+
+      // Save to backend
+      const response = await usersAPI.updateNotificationSettings({
+        ...notifications,
+        [key]: newValue
+      });
+
+      if (!response.success) {
+        // Revert on failure
+        setNotifications(prev => ({
+          ...prev,
+          [key]: !newValue
+        }));
+        alert('❌ Failed to update notification settings');
+      }
+    } catch (error) {
+      console.error('Error updating notification settings:', error);
+      // Revert on error
+      setNotifications(prev => ({
+        ...prev,
+        [key]: !prev[key]
+      }));
+    }
   };
 
   // Handle privacy settings
-  const handlePrivacyChange = (key, value) => {
-    setPrivacySettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handlePrivacyChange = async (key, value) => {
+    try {
+      const oldValue = privacySettings[key];
+
+      // Update local state immediately
+      setPrivacySettings(prev => ({
+        ...prev,
+        [key]: value
+      }));
+
+      // Save to backend
+      const response = await usersAPI.updatePrivacySettings({
+        ...privacySettings,
+        [key]: value
+      });
+
+      if (!response.success) {
+        // Revert on failure
+        setPrivacySettings(prev => ({
+          ...prev,
+          [key]: oldValue
+        }));
+        alert('❌ Failed to update privacy settings');
+      }
+    } catch (error) {
+      console.error('Error updating privacy settings:', error);
+      // Revert on error
+      setPrivacySettings(prev => ({
+        ...prev,
+        [key]: oldValue
+      }));
+    }
   };
 
   // Calculate BMI
@@ -338,9 +555,17 @@ const SettingPage = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={loading}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Save Changes
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </button>
             </div>
           </form>
@@ -426,9 +651,17 @@ const SettingPage = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={loading}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Save Medical Info
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Medical Info'
+                )}
               </button>
             </div>
           </form>
@@ -564,9 +797,17 @@ const SettingPage = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={loading}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Save Insurance Info
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Insurance Info'
+                )}
               </button>
             </div>
           </form>

@@ -1,107 +1,59 @@
 // pages/Patientdashboard/InvoicePage.jsx
 import React, { useState, useEffect } from 'react';
+import { invoicesAPI } from '../../services/api';
 
 const InvoicePage = () => {
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Sample invoices data[6]
-  const sampleInvoices = [
-    {
-      id: 'INV-2025-001',
-      date: '2025-07-15',
-      dueDate: '2025-08-15',
-      amount: 250.00,
-      status: 'paid',
-      description: 'Cardiology Consultation - Dr. Sarah Johnson',
-      services: [
-        { description: 'Doctor Consultation', amount: 200.00 },
-        { description: 'ECG Test', amount: 50.00 }
-      ],
-      patientName: 'John Doe',
-      patientId: 'PAT-2024-001',
-      doctorName: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      paidDate: '2025-07-16',
-      paymentMethod: 'Credit Card'
-    },
-    {
-      id: 'INV-2025-002',
-      date: '2025-07-18',
-      dueDate: '2025-08-18',
-      amount: 180.00,
-      status: 'pending',
-      description: 'Dermatology Consultation - Dr. Emily Davis',
-      services: [
-        { description: 'Doctor Consultation', amount: 150.00 },
-        { description: 'Skin Biopsy', amount: 30.00 }
-      ],
-      patientName: 'John Doe',
-      patientId: 'PAT-2024-001',
-      doctorName: 'Dr. Emily Davis',
-      department: 'Dermatology',
-      paidDate: null,
-      paymentMethod: null
-    },
-    {
-      id: 'INV-2025-003',
-      date: '2025-07-10',
-      dueDate: '2025-08-10',
-      amount: 320.00,
-      status: 'overdue',
-      description: 'Orthopedic Consultation - Dr. James Miller',
-      services: [
-        { description: 'Doctor Consultation', amount: 220.00 },
-        { description: 'X-Ray', amount: 100.00 }
-      ],
-      patientName: 'John Doe',
-      patientId: 'PAT-2024-001',
-      doctorName: 'Dr. James Miller',
-      department: 'Orthopedics',
-      paidDate: null,
-      paymentMethod: null
-    },
-    {
-      id: 'INV-2025-004',
-      date: '2025-07-05',
-      dueDate: '2025-08-05',
-      amount: 450.00,
-      status: 'paid',
-      description: 'General Medicine - Dr. Michael Wilson',
-      services: [
-        { description: 'Doctor Consultation', amount: 150.00 },
-        { description: 'Blood Tests', amount: 200.00 },
-        { description: 'Medication', amount: 100.00 }
-      ],
-      patientName: 'John Doe',
-      patientId: 'PAT-2024-001',
-      doctorName: 'Dr. Michael Wilson',
-      department: 'General Medicine',
-      paidDate: '2025-07-06',
-      paymentMethod: 'Bank Transfer'
+  // Fetch invoices from API
+  const fetchInvoices = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await invoicesAPI.getAll();
+      if (data.success) {
+        const formattedInvoices = data.data.invoices.map(invoice => ({
+          id: invoice.invoiceId || invoice.id,
+          date: invoice.invoiceDate,
+          dueDate: invoice.dueDate,
+          amount: parseFloat(invoice.totalAmount || 0),
+          status: invoice.status === 'paid' ? 'paid' :
+                  invoice.status === 'overdue' ? 'overdue' : 'pending',
+          description: invoice.description || 'Medical Services',
+          services: invoice.items ? JSON.parse(invoice.items) : [],
+          patientName: invoice.patient?.user ?
+            `${invoice.patient.user.firstName} ${invoice.patient.user.lastName}` : 'N/A',
+          patientId: invoice.patient?.patientId || 'N/A',
+          doctorName: invoice.doctor?.user ?
+            `Dr. ${invoice.doctor.user.firstName} ${invoice.doctor.user.lastName}` : 'N/A',
+          department: invoice.doctor?.department?.name || 'N/A',
+          paidDate: invoice.paidAt,
+          paymentMethod: invoice.paymentMethod
+        }));
+        setInvoices(formattedInvoices);
+        setFilteredInvoices(formattedInvoices);
+      } else {
+        throw new Error(data.error || 'Failed to fetch invoices');
+      }
+    } catch (error) {
+      console.error('Error loading invoices:', error);
+      setError(error.message);
+      setInvoices([]);
+      setFilteredInvoices([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   useEffect(() => {
-    const loadInvoices = async () => {
-      setLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setInvoices(sampleInvoices);
-        setFilteredInvoices(sampleInvoices);
-      } catch (error) {
-        console.error('Error loading invoices:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInvoices();
+    fetchInvoices();
   }, []);
 
   useEffect(() => {
@@ -119,22 +71,32 @@ const InvoicePage = () => {
     setShowPaymentModal(true);
   };
 
-  const processPayment = (paymentMethod) => {
-    const updatedInvoices = invoices.map(inv => 
-      inv.id === selectedInvoice.id 
-        ? { 
-            ...inv, 
-            status: 'paid', 
-            paidDate: new Date().toISOString().split('T')[0],
-            paymentMethod: paymentMethod 
-          }
-        : inv
-    );
-    
-    setInvoices(updatedInvoices);
-    setShowPaymentModal(false);
-    setSelectedInvoice(null);
-    alert('✅ Payment processed successfully!');
+  const processPayment = async (paymentMethod) => {
+    try {
+      // Process payment via API
+      const paymentData = {
+        paymentMethod: paymentMethod,
+        amount: selectedInvoice.amount
+      };
+
+      const data = await invoicesAPI.pay(selectedInvoice.id, paymentData);
+
+      if (data.success) {
+        // Refresh invoices list
+        await fetchInvoices();
+
+        setShowPaymentModal(false);
+        setSelectedInvoice(null);
+
+        // Show success message
+        alert('✅ Payment processed successfully!');
+      } else {
+        throw new Error(data.error || 'Payment processing failed');
+      }
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      alert('❌ Payment failed. Please try again.');
+    }
   };
 
   const getStatusColor = (status) => {
@@ -276,15 +238,36 @@ const InvoicePage = () => {
               {loading ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-4 text-center">
-                    <div className="flex justify-center">
+                    <div className="flex justify-center items-center space-x-2">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="text-gray-600">Loading invoices...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center">
+                    <div className="text-red-600">
+                      <p className="mb-2">❌ Error loading invoices: {error}</p>
+                      <button
+                        onClick={fetchInvoices}
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Try Again
+                      </button>
                     </div>
                   </td>
                 </tr>
               ) : filteredInvoices.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                    No invoices found.
+                    <div className="py-8">
+                      <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-lg font-medium text-gray-900 mb-2">No invoices found</p>
+                      <p className="text-gray-500">You don't have any invoices yet.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (

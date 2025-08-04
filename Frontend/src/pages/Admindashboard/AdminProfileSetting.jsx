@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { usersAPI } from '../../services/api';
 
 const AdminProfileSetting = () => {
   const navigate = useNavigate();
@@ -11,36 +12,65 @@ const AdminProfileSetting = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [notifications, setNotifications] = useState({});
   const [securitySettings, setSecuritySettings] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState({});
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
-    defaultValues: {
-      firstName: 'John',
-      lastName: 'Anderson',
-      email: 'john.anderson@hospital.com',
-      phone: '+1 (555) 123-4567',
-      employeeId: 'ADM-001',
-      department: 'Administration',
-      position: 'Hospital Administrator',
-      dateOfBirth: '1975-08-20',
-      gender: 'male',
-      address: '456 Admin Avenue',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'United States',
-      emergencyContactName: 'Sarah Anderson',
-      emergencyContactPhone: '+1 (555) 987-6543',
-      emergencyContactRelation: 'spouse',
-      bio: 'Experienced hospital administrator with over 20 years in healthcare management.',
-      qualifications: 'MBA Healthcare Management, Bachelor of Science in Health Administration',
-      languages: 'English, Spanish',
-      joinDate: '2010-03-15',
-      workSchedule: 'Monday - Friday, 8:00 AM - 6:00 PM'
-    }
-  });
-
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
   const passwordForm = useForm();
   const newPassword = passwordForm.watch('newPassword');
+
+  // Load user data from localStorage/API
+  const loadUserData = async () => {
+    try {
+      // First try to get from localStorage
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setUserData(user);
+
+        // Reset form with user data
+        reset({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email || '',
+          phone: user.phone || '',
+          employeeId: user.employeeId || '',
+          department: user.department || '',
+          position: user.position || '',
+          dateOfBirth: user.dateOfBirth || '',
+          gender: user.gender || '',
+          address: user.address || '',
+          city: user.city || '',
+          state: user.state || '',
+          zipCode: user.zipCode || '',
+          country: user.country || '',
+          emergencyContactName: user.emergencyContactName || '',
+          emergencyContactPhone: user.emergencyContactPhone || '',
+          emergencyContactRelation: user.emergencyContactRelation || '',
+          bio: user.bio || '',
+          qualifications: user.qualifications || '',
+          specializations: user.specializations || '',
+          languages: user.languages || '',
+          workSchedule: user.workSchedule || '',
+          officeLocation: user.officeLocation || '',
+          directReports: user.directReports || '',
+          yearsOfExperience: user.yearsOfExperience || ''
+        });
+
+        // Set profile image if exists
+        if (user.profileImage) {
+          setImagePreview(user.profileImage);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, [reset]);
 
   // Sample notification preferences
   const defaultNotifications = {
@@ -101,17 +131,77 @@ const AdminProfileSetting = () => {
   };
 
   // Handle profile form submission
-  const onProfileSubmit = (data) => {
-    console.log('Profile updated:', data);
-    alert('✅ Profile updated successfully!');
+  const onProfileSubmit = async (data) => {
+    setLoading(true);
+    try {
+      console.log('Profile updated:', data);
+
+      // Update user profile via API
+      const response = await usersAPI.updateProfile(data);
+
+      console.log('API Response:', response);
+
+      if (response.success) {
+        // Update localStorage with new data
+        const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+        if (storedUser) {
+          const user = JSON.parse(storedUser);
+          const updatedUser = { ...user, ...data };
+          localStorage.setItem('hospitalUser', JSON.stringify(updatedUser));
+          sessionStorage.setItem('hospitalUser', JSON.stringify(updatedUser));
+
+          // Dispatch custom event to notify other components
+          window.dispatchEvent(new CustomEvent('userDataUpdated', {
+            detail: updatedUser
+          }));
+        }
+
+        // Update local state
+        setUserData(prev => ({ ...prev, ...data }));
+
+        // Show success message
+        alert('✅ Profile updated successfully!');
+
+        // Reload user data to ensure consistency
+        await loadUserData();
+      } else {
+        throw new Error(response.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('❌ Failed to update profile. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle password change
-  const onPasswordSubmit = (data) => {
-    console.log('Password changed:', data);
-    alert('✅ Password changed successfully!');
-    setShowPasswordModal(false);
-    passwordForm.reset();
+  const onPasswordSubmit = async (data) => {
+    setLoading(true);
+    try {
+      console.log('Password changed:', data);
+
+      // Change password via API
+      const response = await usersAPI.changePassword({
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword
+      });
+
+      console.log('Password change response:', response);
+
+      if (response.success) {
+        alert('✅ Password changed successfully!');
+        setShowPasswordModal(false);
+        passwordForm.reset();
+      } else {
+        throw new Error(response.error || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      alert('❌ Failed to change password. Please check your current password and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle notification preferences
@@ -516,9 +606,17 @@ const AdminProfileSetting = () => {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  Save Changes
+                  {loading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </div>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </button>
                 <button
                   type="button"

@@ -1,90 +1,89 @@
 // pages/Patientdashboard/PatientDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { dashboardAPI, appointmentsAPI, prescriptionsAPI, invoicesAPI } from '../../services/api';
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Sample patient info (would come from auth context)
-  const patientInfo = {
-    name: 'John Doe',
-    id: 'PAT-2024-001',
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    bloodGroup: 'O+',
-    age: 34,
-    avatar: null
+  // Get real patient info from localStorage/sessionStorage
+  const getPatientInfo = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          id: `PAT-${userData.id.toString().padStart(4, '0')}`,
+          email: userData.email,
+          phone: userData.phone || 'Not provided',
+          bloodGroup: userData.bloodGroup || 'Not specified',
+          age: userData.age || 'Not specified',
+          avatar: userData.profileImage || null,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          role: userData.role
+        };
+      }
+    } catch (error) {
+      console.error('Error getting patient info:', error);
+    }
+    // Return null if no user found - require login
+    return null;
   };
 
-  // Sample dashboard data
-  const sampleDashboardData = {
+  const patientInfo = getPatientInfo();
+
+  // Empty fallback data - prefer API data
+  const emptyDashboardData = {
     stats: {
-      upcomingAppointments: 2,
-      completedAppointments: 12,
-      pendingPrescriptions: 1,
-      outstandingBills: 250.00
+      upcomingAppointments: 0,
+      completedAppointments: 0,
+      pendingPrescriptions: 0,
+      outstandingBills: 0
     },
-    upcomingAppointments: [
-      {
-        id: 'APT-001',
-        doctorName: 'Dr. Sarah Johnson',
-        department: 'Cardiology',
-        date: '2025-07-20',
-        time: '10:00 AM',
-        type: 'Follow-up',
-        location: 'Room 201, Wing A'
-      },
-      {
-        id: 'APT-002',
-        doctorName: 'Dr. Michael Wilson',
-        department: 'General Medicine',
-        date: '2025-07-25',
-        time: '2:30 PM',
-        type: 'Consultation',
-        location: 'Room 105, Wing B'
-      }
-    ],
-    recentPrescriptions: [
-      {
-        id: 'RX-001',
-        medicationName: 'Lisinopril 10mg',
-        prescribedBy: 'Dr. Sarah Johnson',
-        date: '2025-07-15',
-        status: 'active',
-        refillsLeft: 2
-      }
-    ],
+    upcomingAppointments: [],
+    recentPrescriptions: [],
     healthMetrics: {
-      lastCheckup: '2025-07-10',
-      bloodPressure: '120/80',
-      weight: '70 kg',
-      height: '175 cm',
-      bmi: 22.9
+      lastCheckup: 'No data',
+      bloodPressure: 'Not recorded',
+      weight: 'Not recorded',
+      height: 'Not recorded',
+      bmi: 'Not calculated'
     },
-    recentActivity: [
-      { type: 'appointment', description: 'Completed consultation with Dr. Sarah Johnson', date: '2025-07-15' },
-      { type: 'prescription', description: 'New prescription issued for Lisinopril', date: '2025-07-15' },
-      { type: 'payment', description: 'Payment of $150 processed successfully', date: '2025-07-12' }
-    ]
+    recentActivity: []
   };
+
+  // Redirect to login if no user found
+  useEffect(() => {
+    if (!patientInfo) {
+      navigate('/auth/login');
+    }
+  }, [patientInfo, navigate]);
 
   useEffect(() => {
     const loadDashboardData = async () => {
+      if (!patientInfo) return;
+
       setLoading(true);
+
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setDashboardData(sampleDashboardData);
+        // Fetch real data from API
+        const response = await dashboardAPI.getPatientStats();
+        setDashboardData(response.data || emptyDashboardData);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
+        // Set empty data on error
+        setDashboardData(emptyDashboardData);
       } finally {
         setLoading(false);
       }
     };
 
     loadDashboardData();
-  }, []);
+  }, [patientInfo]);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -100,9 +99,9 @@ const PatientDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Welcome back, {patientInfo.name}!</h1>
@@ -111,11 +110,11 @@ const PatientDashboard = () => {
             </p>
           </div>
           <div className="hidden md:block">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
               {patientInfo.avatar ? (
                 <img src={patientInfo.avatar} alt={patientInfo.name} className="w-full h-full rounded-full object-cover" />
               ) : (
-                <span className="text-2xl font-bold">
+                <span className="text-lg font-bold">
                   {patientInfo.name.split(' ').map(n => n[0]).join('')}
                 </span>
               )}
@@ -125,73 +124,73 @@ const PatientDashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 6v6m-7-10a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8z" />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Upcoming</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.stats?.upcomingAppointments || 0}</p>
+              <p className="text-xl font-bold text-gray-900">{dashboardData.stats?.upcomingAppointments || 0}</p>
               <p className="text-xs text-gray-500">Appointments</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.stats?.completedAppointments || 0}</p>
+              <p className="text-xl font-bold text-gray-900">{dashboardData.stats?.completedAppointments || 0}</p>
               <p className="text-xs text-gray-500">Appointments</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Active</p>
-              <p className="text-2xl font-bold text-gray-900">{dashboardData.stats?.pendingPrescriptions || 0}</p>
+              <p className="text-xl font-bold text-gray-900">{dashboardData.stats?.pendingPrescriptions || 0}</p>
               <p className="text-xs text-gray-500">Prescriptions</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="ml-4">
+            <div className="ml-3">
               <p className="text-sm font-medium text-gray-600">Outstanding</p>
-              <p className="text-2xl font-bold text-gray-900">${dashboardData.stats?.outstandingBills || 0}</p>
+              <p className="text-xl font-bold text-gray-900">${dashboardData.stats?.outstandingBills || 0}</p>
               <p className="text-xs text-gray-500">Bills</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
         {/* Upcoming Appointments */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Upcoming Appointments</h2>
             <button 
               onClick={() => navigate('/patient/appointments')}

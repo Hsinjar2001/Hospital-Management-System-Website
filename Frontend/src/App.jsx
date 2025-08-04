@@ -211,7 +211,7 @@ function App() {
                 <PublicRoute>
                   <Navbar />
                   <HomePage />
-                  <Footer />
+                  {/* <Footer /> */}
                 </PublicRoute>
               } 
             />

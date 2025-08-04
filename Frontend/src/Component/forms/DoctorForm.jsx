@@ -40,42 +40,11 @@ const DoctorForm = ({
   // Watch form values for dynamic updates
   const watchedValues = watch();
 
-  // Sample data (replace with actual data from props or API)
-  const defaultDepartments = departments.length > 0 ? departments : [
-    { id: 'cardiology', name: 'Cardiology', icon: '❤️' },
-    { id: 'neurology', name: 'Neurology', icon: '🧠' },
-    { id: 'orthopedics', name: 'Orthopedics', icon: '🦴' },
-    { id: 'pediatrics', name: 'Pediatrics', icon: '👶' },
-    { id: 'dermatology', name: 'Dermatology', icon: '🌟' },
-    { id: 'gynecology', name: 'Gynecology', icon: '👩‍⚕️' },
-    { id: 'internal-medicine', name: 'Internal Medicine', icon: '🏥' },
-    { id: 'psychiatry', name: 'Psychiatry', icon: '🧘‍♂️' },
-    { id: 'radiology', name: 'Radiology', icon: '📸' },
-    { id: 'anesthesiology', name: 'Anesthesiology', icon: '💉' }
-  ];
+  // Use only provided departments - no dummy data
+  const defaultDepartments = departments;
 
-  const defaultSpecialties = specialties.length > 0 ? specialties : [
-    'General Practitioner',
-    'Cardiologist',
-    'Neurologist',
-    'Orthopedic Surgeon',
-    'Pediatrician',
-    'Dermatologist',
-    'Gynecologist',
-    'Psychiatrist',
-    'Radiologist',
-    'Anesthesiologist',
-    'Oncologist',
-    'Urologist',
-    'Ophthalmologist',
-    'ENT Specialist',
-    'Pulmonologist',
-    'Gastroenterologist',
-    'Endocrinologist',
-    'Nephrologist',
-    'Rheumatologist',
-    'Emergency Medicine'
-  ];
+  // Use only real specialties from props - no dummy data
+  const defaultSpecialties = specialties || [];
 
   // Handle image upload
   const handleImageChange = (e) => {

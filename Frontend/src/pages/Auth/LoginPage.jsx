@@ -26,7 +26,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -41,20 +41,21 @@ const LoginPage = () => {
       const result = await response.json();
       console.log('Backend login response:', result);
 
-      if (response.ok && result.user) {
-        // Store user data
+      if (response.ok && result.success && result.data && result.data.user) {
+        // Store user data and token
         const storage = rememberMe ? localStorage : sessionStorage;
-        storage.setItem('hospitalUser', JSON.stringify(result.user));
+        storage.setItem('hospitalUser', JSON.stringify(result.data.user));
+        storage.setItem('hospitalToken', result.data.token);
 
         // Show success message
-        alert(`✅ Welcome back, ${result.user.name || result.user.email}!`);
+        alert(`✅ Welcome back, ${result.data.user.firstName} ${result.data.user.lastName}!`);
 
         // FIXED: Use window.location.href instead of navigate() for immediate redirect
-        const redirectPath = getDashboardPath(result.user.role);
+        const redirectPath = getDashboardPath(result.data.user.role);
         window.location.href = redirectPath;
-        
+
       } else {
-        alert(`❌ Login failed: ${result.message || 'Invalid email or password.'}`);
+        alert(`❌ Login failed: ${result.error || result.message || 'Invalid email or password.'}`);
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -83,14 +84,7 @@ const LoginPage = () => {
         </div>
 
         {/* Demo Accounts */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-yellow-800 mb-2">Demo Accounts:</h3>
-          <div className="text-xs text-yellow-700 space-y-1">
-            <div><strong>Admin:</strong> admin@hospital.com / admin123</div>
-            <div><strong>Doctor:</strong> doctor@hospital.com / doctor123</div>
-            <div><strong>Patient:</strong> patient@hospital.com / patient123</div>
-          </div>
-        </div>
+
 
         {/* Login Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>

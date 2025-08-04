@@ -31,19 +31,40 @@ const RegisterPage = () => {
     }
 
     setLoading(true);
-    
+
     try {
       console.log('Registration data:', data);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      alert('✅ Registration successful! Please check your email for verification.');
-      navigate('/auth/login');
-      
+
+      // Call backend API
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          dateOfBirth: data.dateOfBirth,
+          role: data.accountType || 'patient' // Use selected account type
+        })
+      });
+
+      const result = await response.json();
+      console.log('Backend registration response:', result);
+
+      if (response.ok && result.success) {
+        alert(`✅ Registration successful! Welcome ${result.data.user.firstName}!`);
+        navigate('/auth/login');
+      } else {
+        alert(`❌ Registration failed: ${result.error || 'Please try again.'}`);
+      }
+
     } catch (error) {
       console.error('Registration error:', error);
-      alert('❌ Registration failed. Please try again.');
+      alert('❌ Registration failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

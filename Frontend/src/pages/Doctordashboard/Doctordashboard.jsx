@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import StatCard from '../../Component/common/StatCard';
+import { dashboardAPI, appointmentsAPI, patientsAPI } from '../../services/api';
 
 const Doctordashboard = () => {
   const navigate = useNavigate();
@@ -9,94 +10,64 @@ const Doctordashboard = () => {
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
 
-  // Sample doctor data (replace with actual user context)
-  const doctorInfo = {
-    name: 'Dr. Sarah Johnson',
-    id: 'DOC-001',
-    department: 'Cardiology',
-    specialty: 'Interventional Cardiology',
-    avatar: null,
-    status: 'available'
+  // Get real doctor info from localStorage/sessionStorage
+  const getDoctorInfo = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          id: `DOC-${userData.id.toString().padStart(3, '0')}`,
+          department: userData.department || 'General Medicine',
+          specialty: userData.specialty || 'General Practice',
+          avatar: userData.profileImage || null,
+          status: 'available',
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role
+        };
+      }
+    } catch (error) {
+      console.error('Error getting doctor info:', error);
+    }
+    // Return null if no user found - require login
+    return null;
   };
 
-  // Sample dashboard data
-  const sampleDashboardData = {
+  const doctorInfo = getDoctorInfo();
+
+  // Redirect to login if no user found
+  useEffect(() => {
+    if (!doctorInfo) {
+      navigate('/auth/login');
+    }
+  }, [doctorInfo, navigate]);
+
+  // Empty fallback data - prefer API data
+  const emptyDashboardData = {
     stats: {
-      totalPatients: 145,
-      todayAppointments: 8,
-      completedAppointments: 6,
-      pendingPrescriptions: 3,
-      avgRating: 4.8,
-      totalReviews: 127
+      totalPatients: 0,
+      todayAppointments: 0,
+      completedAppointments: 0,
+      pendingPrescriptions: 0,
+      avgRating: 0,
+      totalReviews: 0
     },
-    todaySchedule: [
-      {
-        id: 'APT-001',
-        patientName: 'John Doe',
-        patientId: 'PAT-001',
-        time: '9:00 AM',
-        duration: '30 min',
-        type: 'Consultation',
-        status: 'completed',
-        reason: 'Regular checkup'
-      },
-      {
-        id: 'APT-002',
-        patientName: 'Jane Smith',
-        patientId: 'PAT-002',
-        time: '10:30 AM',
-        duration: '45 min',
-        type: 'Follow-up',
-        status: 'completed',
-        reason: 'Post-surgery follow-up'
-      },
-      {
-        id: 'APT-003',
-        patientName: 'Robert Brown',
-        patientId: 'PAT-003',
-        time: '2:00 PM',
-        duration: '30 min',
-        type: 'Consultation',
-        status: 'in-progress',
-        reason: 'Chest pain evaluation'
-      },
-      {
-        id: 'APT-004',
-        patientName: 'Lisa Wilson',
-        patientId: 'PAT-004',
-        time: '3:30 PM',
-        duration: '30 min',
-        type: 'Follow-up',
-        status: 'scheduled',
-        reason: 'Blood pressure monitoring'
-      }
-    ],
-    recentPatients: [
-      { name: 'John Doe', lastVisit: '2024-01-20', condition: 'Hypertension' },
-      { name: 'Jane Smith', lastVisit: '2024-01-19', condition: 'Post-operative care' },
-      { name: 'Robert Brown', lastVisit: '2024-01-18', condition: 'Chest pain' },
-      { name: 'Maria Garcia', lastVisit: '2024-01-17', condition: 'Diabetes management' }
-    ],
-    upcomingTasks: [
-      { task: 'Review lab results for John Doe', priority: 'high', due: 'Today' },
-      { task: 'Complete discharge summary for Jane Smith', priority: 'medium', due: 'Tomorrow' },
-      { task: 'Follow up on Robert Brown\'s test results', priority: 'low', due: 'This week' }
-    ]
+    todaySchedule: [],
+    recentPatients: [],
+    upcomingTasks: []
   };
 
   // Load dashboard data
   useEffect(() => {
     const loadDashboardData = async () => {
       setLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setDashboardData(sampleDashboardData);
-      } catch (error) {
-        console.error('Error loading dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
+
+      // Use empty data - no dummy data
+      setDashboardData(emptyDashboardData);
+      setLoading(false);
     };
 
     loadDashboardData();
@@ -126,7 +97,7 @@ const Doctordashboard = () => {
   const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -160,7 +131,7 @@ const Doctordashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Patients"
           value={dashboardData.stats?.totalPatients || 0}
@@ -200,11 +171,11 @@ const Doctordashboard = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
         {/* Today's Schedule */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Today's Schedule</h2>
             <button 
               onClick={() => navigate('/doctor/schedule')}

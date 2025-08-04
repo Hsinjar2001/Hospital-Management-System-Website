@@ -1,6 +1,7 @@
 // pages/Admindashboard/PatientsDetailsPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { patientsAPI, invoicesAPI } from '../../services/api';
 
 const PatientsDetailsPage = () => {
   const navigate = useNavigate();
@@ -12,166 +13,83 @@ const PatientsDetailsPage = () => {
   const [medicalRecords, setMedicalRecords] = useState([]);
   const [invoices, setInvoices] = useState([]);
 
-  // Sample patient data
-  const samplePatient = {
-    id: 'PAT-2024-001',
-    firstName: 'John',
-    lastName: 'Doe',
-    fullName: 'John Doe',
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: '1990-05-15',
-    age: 34,
-    gender: 'Male',
-    bloodGroup: 'O+',
-    maritalStatus: 'Married',
-    address: '123 Main Street, Apt 4B',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    country: 'United States',
-    nationality: 'American',
-    status: 'Active',
-    registrationDate: '2020-03-15',
-    lastVisit: '2024-01-15',
-    primaryDoctor: 'Dr. Sarah Johnson',
-    primaryDoctorId: 'DOC-001',
-    department: 'Cardiology',
-    profileImage: null,
-    
-    // Medical Information
-    allergies: 'Penicillin, Shellfish',
-    medicalHistory: 'Hypertension (diagnosed 2020), Diabetes Type 2 (diagnosed 2022)',
-    currentMedications: 'Lisinopril 10mg daily, Metformin 500mg twice daily',
-    height: 175, // cm
-    weight: 80, // kg
-    bmi: 26.1,
-    bloodPressure: '140/90',
-    heartRate: 78,
-    temperature: 98.6,
-    
-    // Emergency Contact
-    emergencyContactName: 'Jane Doe',
-    emergencyContactPhone: '+1 (555) 987-6543',
-    emergencyContactEmail: 'jane.doe@email.com',
-    emergencyContactRelation: 'Spouse',
-    
-    // Insurance
-    hasInsurance: true,
-    insuranceProvider: 'Blue Cross Blue Shield',
-    policyNumber: 'BC123456789',
-    groupNumber: 'GRP001',
-    
-    // Statistics
-    totalAppointments: 24,
-    completedAppointments: 20,
-    cancelledAppointments: 2,
-    pendingAppointments: 2,
-    totalBills: 5420.50,
-    pendingBills: 850.00,
-    lastPayment: '2024-01-10',
-    
-    createdAt: '2020-03-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
+  // API base URL
+  const API_BASE_URL = 'http://localhost:5003/api';
+
+  // Load patient data from API
+  useEffect(() => {
+    const loadPatientData = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      try {
+        // Load real patient data from API
+        const response = await patientsAPI.getById(id);
+        if (response.success && response.data) {
+          setPatient(response.data);
+        } else {
+          console.error('Failed to load patient:', response.error);
+          setPatient(null);
+        }
+      } catch (error) {
+        console.error('Error loading patient:', error);
+        setPatient(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPatientData();
+  }, [id]);
+
+  // Patient invoices state
+  const [patientInvoices, setPatientInvoices] = useState([]);
+  const [invoicesLoading, setInvoicesLoading] = useState(false);
+
+  // Fetch patient invoices
+  const fetchPatientInvoices = async (patientId) => {
+    setInvoicesLoading(true);
+    try {
+      // Get invoices filtered by patient ID
+      const data = await invoicesAPI.getAll({ patientId });
+      if (data.success) {
+        setPatientInvoices(data.data.invoices || []);
+      } else {
+        setPatientInvoices([]);
+      }
+    } catch (error) {
+      console.error('Error fetching patient invoices:', error);
+      setPatientInvoices([]);
+    } finally {
+      setInvoicesLoading(false);
+    }
   };
-
-  // Sample appointments
-  const sampleAppointments = [
-    {
-      id: 'APT-001',
-      date: '2024-01-20',
-      time: '10:00 AM',
-      doctor: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      type: 'Follow-up',
-      status: 'Scheduled',
-      reason: 'Regular checkup for heart condition'
-    },
-    {
-      id: 'APT-002',
-      date: '2024-01-15',
-      time: '2:30 PM',
-      doctor: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      type: 'Consultation',
-      status: 'Completed',
-      reason: 'Chest pain evaluation'
-    },
-    {
-      id: 'APT-003',
-      date: '2024-01-10',
-      time: '11:00 AM',
-      doctor: 'Dr. Michael Wilson',
-      department: 'Laboratory',
-      type: 'Lab Test',
-      status: 'Completed',
-      reason: 'Blood work and cholesterol check'
-    }
-  ];
-
-  // Sample medical records
-  const sampleMedicalRecords = [
-    {
-      id: 'MR-001',
-      date: '2024-01-15',
-      doctor: 'Dr. Sarah Johnson',
-      diagnosis: 'Hypertension monitoring',
-      treatment: 'Continue current medication, lifestyle modifications',
-      notes: 'Blood pressure improved since last visit. Patient responding well to treatment.',
-      prescriptions: ['Lisinopril 10mg daily', 'Low sodium diet recommended']
-    },
-    {
-      id: 'MR-002',
-      date: '2024-01-10',
-      doctor: 'Dr. Michael Wilson',
-      diagnosis: 'Routine lab work',
-      treatment: 'No immediate treatment required',
-      notes: 'All lab values within normal range. Cholesterol levels improved.',
-      prescriptions: ['Continue current medications']
-    }
-  ];
-
-  // Sample invoices
-  const sampleInvoices = [
-    {
-      id: 'INV-001',
-      date: '2024-01-15',
-      amount: 350.00,
-      status: 'Paid',
-      description: 'Cardiology consultation and ECG',
-      dueDate: '2024-02-14'
-    },
-    {
-      id: 'INV-002',
-      date: '2024-01-10',
-      amount: 150.00,
-      status: 'Paid',
-      description: 'Laboratory tests - Blood work',
-      dueDate: '2024-02-09'
-    },
-    {
-      id: 'INV-003',
-      date: '2024-01-20',
-      amount: 850.00,
-      status: 'Pending',
-      description: 'Cardiology follow-up and stress test',
-      dueDate: '2024-02-19'
-    }
-  ];
 
   // Load patient data
   useEffect(() => {
     const loadPatientData = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPatient(samplePatient);
-        setAppointments(sampleAppointments);
-        setMedicalRecords(sampleMedicalRecords);
-        setInvoices(sampleInvoices);
+        // Fetch real patient data from API
+        const response = await patientsAPI.getById(id);
+        setPatient(response.data);
+
+        // Fetch patient appointments, medical records, and invoices
+        await Promise.all([
+          fetchPatientInvoices(id),
+          // Add more API calls here when available:
+          // fetchPatientAppointments(id),
+          // fetchPatientMedicalRecords(id)
+        ]);
+
+        // Set empty arrays for now until APIs are implemented
+        setAppointments([]);
+        setMedicalRecords([]);
+
       } catch (error) {
         console.error('Error loading patient data:', error);
+        // Redirect to patients list if patient not found
+        navigate('/admin/patients');
       } finally {
         setLoading(false);
       }
@@ -180,7 +98,7 @@ const PatientsDetailsPage = () => {
     if (id) {
       loadPatientData();
     }
-  }, [id]);
+  }, [id, navigate]);
 
   // Get status color
   const getStatusColor = (status) => {
@@ -715,24 +633,57 @@ const PatientsDetailsPage = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {invoices.map((invoice) => (
-                      <tr key={invoice.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{invoice.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(invoice.date).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{invoice.description}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${invoice.amount}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(invoice.dueDate).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
-                            {invoice.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button className="text-blue-600 hover:text-blue-900 mr-2">View</button>
-                          <button className="text-green-600 hover:text-green-900">Download</button>
+                    {invoicesLoading ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center space-x-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            <span className="text-gray-600">Loading invoices...</span>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : patientInvoices.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                          <div className="py-8">
+                            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p className="text-lg font-medium text-gray-900 mb-2">No invoices found</p>
+                            <p className="text-gray-500">This patient doesn't have any invoices yet.</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      patientInvoices.map((invoice) => (
+                        <tr key={invoice.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {invoice.invoiceId || invoice.id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(invoice.invoiceDate || invoice.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">
+                            {invoice.description || 'Medical Services'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ${parseFloat(invoice.totalAmount || invoice.amount || 0).toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
+                              {invoice.status?.charAt(0).toUpperCase() + invoice.status?.slice(1) || 'Unknown'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <button className="text-blue-600 hover:text-blue-900 mr-2">View</button>
+                            <button className="text-green-600 hover:text-green-900">Download</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

@@ -1,0 +1,147 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Data Storage</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Hospital Management System - User Data Test</h1>
+        
+        <div class="section info">
+            <h3>📋 Current Storage Status</h3>
+            <div id="storageStatus">Loading...</div>
+        </div>
+
+        <div class="section">
+            <h3>🔐 Test Login</h3>
+            <p>Test the login flow and see what data gets stored:</p>
+            <button class="btn-primary" onclick="testLogin()">Test Login (Admin)</button>
+            <button class="btn-success" onclick="testLogin('doctor')">Test Login (Doctor)</button>
+            <button class="btn-danger" onclick="clearStorage()">Clear Storage</button>
+        </div>
+
+        <div class="section">
+            <h3>📊 Stored User Data</h3>
+            <div id="userData">No user data found</div>
+        </div>
+
+        <div class="section">
+            <h3>🎯 Expected Dashboard Display</h3>
+            <div id="dashboardPreview">Login first to see preview</div>
+        </div>
+    </div>
+
+    <script>
+        function checkStorage() {
+            const localStorage_user = localStorage.getItem('hospitalUser');
+            const sessionStorage_user = sessionStorage.getItem('hospitalUser');
+            const localStorage_token = localStorage.getItem('hospitalToken');
+            const sessionStorage_token = sessionStorage.getItem('hospitalToken');
+
+            let status = '<ul>';
+            status += `<li>localStorage user: ${localStorage_user ? '✅ Present' : '❌ Not found'}</li>`;
+            status += `<li>sessionStorage user: ${sessionStorage_user ? '✅ Present' : '❌ Not found'}</li>`;
+            status += `<li>localStorage token: ${localStorage_token ? '✅ Present' : '❌ Not found'}</li>`;
+            status += `<li>sessionStorage token: ${sessionStorage_token ? '✅ Present' : '❌ Not found'}</li>`;
+            status += '</ul>';
+
+            document.getElementById('storageStatus').innerHTML = status;
+
+            // Display user data
+            const userData = localStorage_user || sessionStorage_user;
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    document.getElementById('userData').innerHTML = `<pre>${JSON.stringify(user, null, 2)}</pre>`;
+                    
+                    // Show dashboard preview
+                    const preview = `
+                        <div class="success">
+                            <h4>Dashboard should show:</h4>
+                            <ul>
+                                <li><strong>Welcome Message:</strong> "Welcome back, ${user.firstName} ${user.lastName}!"</li>
+                                <li><strong>User ID:</strong> ${user.role === 'patient' ? 'PAT-' : user.role === 'doctor' ? 'DOC-' : 'ADM-'}${user.id.toString().padStart(4, '0')}</li>
+                                <li><strong>Email:</strong> ${user.email}</li>
+                                <li><strong>Phone:</strong> ${user.phone || 'Not provided'}</li>
+                                <li><strong>Role:</strong> ${user.role}</li>
+                                <li><strong>Status:</strong> ${user.isActive ? 'Active' : 'Inactive'}</li>
+                            </ul>
+                        </div>
+                    `;
+                    document.getElementById('dashboardPreview').innerHTML = preview;
+                } catch (e) {
+                    document.getElementById('userData').innerHTML = '<div class="error">Error parsing user data: ' + e.message + '</div>';
+                }
+            } else {
+                document.getElementById('userData').innerHTML = '<div class="info">No user data found in storage</div>';
+                document.getElementById('dashboardPreview').innerHTML = '<div class="info">Login first to see preview</div>';
+            }
+        }
+
+        async function testLogin(userType = 'admin') {
+            const credentials = {
+                admin: { email: 'admin@hospital.com', password: 'admin123' },
+                doctor: { email: 'doctor@hospital.com', password: 'doctor123' },
+                patient: { email: 'patient@hospital.com', password: 'patient123' }
+            };
+
+            const creds = credentials[userType];
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(creds)
+                });
+
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.user) {
+                    // Store data like the real login page does
+                    localStorage.setItem('hospitalUser', JSON.stringify(result.data.user));
+                    localStorage.setItem('hospitalToken', result.data.token);
+                    
+                    alert(`✅ Login successful! User data stored for ${result.data.user.firstName} ${result.data.user.lastName}`);
+                    checkStorage();
+                } else {
+                    alert(`❌ Login failed: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                alert(`❌ Login error: ${error.message}`);
+            }
+        }
+
+        function clearStorage() {
+            localStorage.removeItem('hospitalUser');
+            localStorage.removeItem('hospitalToken');
+            sessionStorage.removeItem('hospitalUser');
+            sessionStorage.removeItem('hospitalToken');
+            alert('🧹 Storage cleared!');
+            checkStorage();
+        }
+
+        // Check storage on page load
+        checkStorage();
+        
+        // Refresh every 2 seconds to show live updates
+        setInterval(checkStorage, 2000);
+    </script>
+</body>
+</html> -->

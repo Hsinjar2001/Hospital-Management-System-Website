@@ -1,7 +1,8 @@
 // pages/Admindashboard/AddPatientsPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import PatientForm from '../../Component/forms/PatientForm';
+import SimplePatientForm from '../../Component/forms/SimplePatientForm';
+import { patientsAPI } from '../../services/api';
 
 const AddPatientsPage = () => {
   const navigate = useNavigate();
@@ -12,97 +13,56 @@ const AddPatientsPage = () => {
   // Determine if this is edit mode
   const isEditMode = Boolean(id);
 
-  // Sample patient data for edit mode (replace with actual API call)
-  const samplePatientData = {
-    patientId: 'PAT-2024-001',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@email.com',
-    phone: '+1 (555) 123-4567',
-    gender: 'male',
-    dateOfBirth: '1990-05-15',
-    age: 34,
-    bloodGroup: 'O+',
-    maritalStatus: 'married',
-    address: '123 Main Street, Apt 4B',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    country: 'United States',
-    nationality: 'American',
-    status: 'active',
-    primaryDoctor: 'Dr. Sarah Johnson',
-    allergies: 'Penicillin, Shellfish',
-    medicalHistory: 'Hypertension (diagnosed 2020), Diabetes Type 2 (diagnosed 2022)',
-    currentMedications: 'Lisinopril 10mg daily, Metformin 500mg twice daily',
-    height: 175,
-    weight: 80,
-    smoker: false,
-    alcoholConsumer: true,
-    hasChronicConditions: true,
-    takingMedications: true,
-    emergencyContactName: 'Jane Doe',
-    emergencyContactPhone: '+1 (555) 987-6543',
-    emergencyContactEmail: 'jane.doe@email.com',
-    emergencyContactRelation: 'spouse',
-    emergencyContactAddress: '123 Main Street, Apt 4B, New York, NY 10001',
-    secondaryEmergencyContactName: 'Robert Doe',
-    secondaryEmergencyContactPhone: '+1 (555) 456-7890',
-    hasInsurance: true,
-    insuranceProvider: 'Blue Cross Blue Shield',
-    policyNumber: 'BC123456789',
-    groupNumber: 'GRP001',
-    primaryInsuredName: 'John Doe',
-    relationshipToPrimary: 'self',
-    preferredPaymentMethod: 'insurance',
-    financialStatus: 'good',
-    notes: 'Patient is compliant with treatment and follows up regularly.',
-    profileImage: null,
-    createdAt: '2020-03-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
-  };
+  // Load patient data for edit mode from API
+  useEffect(() => {
 
-  // Insurance providers list
-  const insuranceProviders = [
-    'Blue Cross Blue Shield',
-    'Aetna',
-    'Cigna',
-    'UnitedHealth',
-    'Humana',
-    'Kaiser Permanente',
-    'Anthem',
-    'Molina Healthcare',
-    'Centene',
-    'WellCare'
-  ];
-
-  // Load patient data for edit mode
-  React.useEffect(() => {
-    if (isEditMode) {
-      // In a real app, fetch patient data by ID
-      // For now, using sample data
-      setInitialData(samplePatientData);
+    
+    if (isEditMode && id) {
+      const loadPatientData = async () => {
+        try {
+          const response = await patientsAPI.getById(id);
+          if (response.success && response.data) {
+            setInitialData(response.data);
+          } else {
+            console.error('Failed to load patient data:', response.error);
+          }
+        } catch (error) {
+          console.error('Error loading patient data:', error);
+        }
+      };
+      loadPatientData();
     }
   }, [id, isEditMode]);
+
+  // Simple form doesn't need insurance providers list
+
+
 
   // Handle form submission
   const handleSubmit = async (formData) => {
     setLoading(true);
-    
+
     try {
       console.log('Patient form submitted:', formData);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       if (isEditMode) {
         // Update existing patient
-        alert('✅ Patient information updated successfully!');
-        navigate(`/admin/patients/${id}`);
+        const response = await patientsAPI.update(id, formData);
+        if (response.success) {
+          alert('✅ Patient information updated successfully!');
+          navigate(`/admin/patients/${id}`);
+        } else {
+          throw new Error(response.error || 'Failed to update patient');
+        }
       } else {
         // Add new patient
-        alert('✅ New patient registered successfully!');
-        navigate('/admin/patients');
+        const response = await patientsAPI.create(formData);
+        if (response.success) {
+          alert('✅ New patient registered successfully!');
+          navigate('/admin/patients');
+        } else {
+          throw new Error(response.error || 'Failed to create patient');
+        }
       }
     } catch (error) {
       console.error('Error submitting patient form:', error);
@@ -249,11 +209,10 @@ const AddPatientsPage = () => {
         )}
 
         {/* Patient Form */}
-        <PatientForm 
+        <SimplePatientForm
           onSubmit={handleSubmit}
           initialData={initialData}
           loading={loading}
-          insuranceProviders={insuranceProviders}
           mode={isEditMode ? 'edit' : 'create'}
           className="mb-8"
         />

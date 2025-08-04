@@ -7,51 +7,34 @@ const AddDoctorPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
-  const [initialData, setInitialData] = useState(null);
 
   // Determine if this is edit mode
   const isEditMode = Boolean(id);
 
-  // Sample doctor data for edit mode (replace with actual API call)
-  const sampleDoctorData = {
-    doctorId: 'DOC-001',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah.johnson@hospital.com',
-    phone: '+1 (555) 123-4567',
-    gender: 'female',
-    dateOfBirth: '1985-03-15',
-    address: '123 Medical Street',
-    city: 'New York',
-    state: 'NY',
-    zipCode: '10001',
-    licenseNumber: 'MD123456',
-    registrationNumber: 'REG789012',
-    department: 'cardiology',
-    specialty: 'Cardiologist',
-    experience: 12,
-    consultationFee: 200,
-    qualifications: 'MBBS, MD (Cardiology), FACC',
-    employmentType: 'full-time',
-    status: 'active',
-    joinDate: '2020-01-15',
-    availability: 'available',
-    bio: 'Dr. Sarah Johnson is a highly experienced cardiologist with over 12 years of practice.',
-    languages: 'English, Spanish, French',
-    notes: 'Specializes in interventional cardiology and heart failure management.',
-    profileImage: null,
-    createdAt: '2020-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
-  };
-
   // Load doctor data for edit mode
   React.useEffect(() => {
     if (isEditMode) {
-      // In a real app, fetch doctor data by ID
-      // For now, using sample data
-      setInitialData(sampleDoctorData);
+      const loadDoctorData = async () => {
+        setLoading(true);
+        try {
+          // Fetch doctor data by ID from API
+          // const response = await doctorsAPI.getById(id);
+          // setInitialData(response.data);
+
+          // For now, redirect to list if no API implementation
+          console.log('Edit mode not implemented yet');
+          navigate('/admin/doctors');
+        } catch (error) {
+          console.error('Error loading doctor data:', error);
+          navigate('/admin/doctors');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadDoctorData();
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, navigate]);
 
   // Handle form submission
   const handleSubmit = async (formData) => {

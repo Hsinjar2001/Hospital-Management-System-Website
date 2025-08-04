@@ -17,99 +17,28 @@ const AppointmentPage = () => {
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
   const selectedDoctorId = watch('doctorId');
 
-  // Sample appointments data[1][2]
-  const sampleAppointments = [
-    {
-      id: 'APT-001',
-      doctorName: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      date: '2025-07-20',
-      time: '10:00 AM',
-      status: 'scheduled',
-      type: 'Follow-up',
-      location: 'Room 201, Wing A',
-      reason: 'Regular heart checkup',
-      fee: 200
-    },
-    {
-      id: 'APT-002',
-      doctorName: 'Dr. Michael Wilson',
-      department: 'General Medicine',
-      date: '2025-07-25',
-      time: '2:30 PM',
-      status: 'scheduled',
-      type: 'Consultation',
-      location: 'Room 105, Wing B',
-      reason: 'General health consultation',
-      fee: 150
-    },
-    {
-      id: 'APT-003',
-      doctorName: 'Dr. Emily Davis',
-      department: 'Dermatology',
-      date: '2025-07-15',
-      time: '11:00 AM',
-      status: 'completed',
-      type: 'Consultation',
-      location: 'Room 302, Wing C',
-      reason: 'Skin condition evaluation',
-      fee: 180
-    },
-    {
-      id: 'APT-004',
-      doctorName: 'Dr. James Miller',
-      department: 'Orthopedics',
-      date: '2025-07-12',
-      time: '3:00 PM',
-      status: 'cancelled',
-      type: 'Consultation',
-      location: 'Room 205, Wing B',
-      reason: 'Knee pain assessment',
-      fee: 220
-    }
-  ];
+  // Appointments will be loaded from API
 
-  // Sample doctors data[4]
-  const sampleDoctors = [
-    {
-      id: 'DOC-001',
-      name: 'Dr. Sarah Johnson',
-      specialty: 'Cardiology',
-      fee: 200,
-      rating: 4.9,
-      experience: '15+ years',
-      image: '/api/placeholder/100/100'
-    },
-    {
-      id: 'DOC-002',
-      name: 'Dr. Michael Wilson',
-      specialty: 'General Medicine',
-      fee: 150,
-      rating: 4.8,
-      experience: '12+ years',
-      image: '/api/placeholder/100/100'
-    },
-    {
-      id: 'DOC-003',
-      name: 'Dr. Emily Davis',
-      specialty: 'Dermatology',
-      fee: 180,
-      rating: 4.7,
-      experience: '10+ years',
-      image: '/api/placeholder/100/100'
-    }
-  ];
+  // Doctors will be loaded from API
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setAppointments(sampleAppointments);
-        setFilteredAppointments(sampleAppointments);
-        setDoctors(sampleDoctors);
+        // Fetch real appointments and doctors from API
+        // const appointmentsResponse = await appointmentsAPI.getPatientAppointments();
+        // const doctorsResponse = await doctorsAPI.getAll();
+
+        // For now, set empty arrays until APIs are implemented
+        setAppointments([]);
+        setFilteredAppointments([]);
+        setDoctors([]);
       } catch (error) {
         console.error('Error loading appointments:', error);
+        // Set empty arrays on error
+        setAppointments([]);
+        setFilteredAppointments([]);
+        setDoctors([]);
       } finally {
         setLoading(false);
       }

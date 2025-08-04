@@ -134,10 +134,10 @@ const StatCard = ({
   // Default variant
   const DefaultCard = () => (
     <div className={`
-      bg-white rounded-xl shadow-sm border border-gray-100 p-6 
-      ${onClick ? 'cursor-pointer hover:shadow-md transform hover:scale-105' : ''} 
-      transition-all duration-200 
-      ${colors.ring} 
+      bg-white rounded-lg shadow-sm border border-gray-100 p-4
+      ${onClick ? 'cursor-pointer hover:shadow-md transform hover:scale-105' : ''}
+      transition-all duration-200
+      ${colors.ring}
       ${className}
     `}>
       <div className="flex items-center justify-between">
@@ -164,15 +164,15 @@ const StatCard = ({
         </div>
         
         {/* Icon */}
-        <div className={`${colors.bg} p-3 rounded-lg`}>
+        <div className={`${colors.bg} p-2 rounded-lg`}>
           {icon ? (
             typeof icon === 'string' ? (
-              <span className="text-xl">{icon}</span>
+              <span className="text-lg">{icon}</span>
             ) : (
               <div className={`${colors.icon}`}>{icon}</div>
             )
           ) : (
-            <div className={`w-6 h-6 bg-gradient-to-br ${colors.gradient} rounded-full`}></div>
+            <div className={`w-5 h-5 bg-gradient-to-br ${colors.gradient} rounded-full`}></div>
           )}
         </div>
       </div>

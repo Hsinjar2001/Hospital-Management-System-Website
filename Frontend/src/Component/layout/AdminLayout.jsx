@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 
@@ -7,76 +7,94 @@ const AdminLayout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [userDataVersion, setUserDataVersion] = useState(0); // Force re-render when user data updates
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Sample admin user data (replace with actual user context)
-  const adminUser = {
-    name: 'John Anderson',
-    email: 'john.anderson@hospital.com',
-    role: 'Administrator',
-    avatar: null,
-    lastLogin: '2024-01-15T10:30:00Z',
-    permissions: ['all']
+  // Get real admin user data from localStorage/sessionStorage
+  const getAdminUser = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: userData.role,
+          avatar: userData.profileImage || null,
+          lastLogin: userData.lastLoginAt || new Date().toISOString(),
+          permissions: userData.permissions || ['all'],
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+      }
+    } catch (error) {
+      console.error('Error getting admin user data:', error);
+    }
+    // Fallback to default admin data if no user found
+    return {
+      name: 'Administrator',
+      email: 'admin@hospital.com',
+      role: 'Administrator',
+      avatar: null,
+      lastLogin: new Date().toISOString(),
+      permissions: ['all']
+    };
   };
+
+  // Get admin user data (re-computed when userDataVersion changes)
+  const adminUser = useMemo(() => getAdminUser(), [userDataVersion]);
 
   // Logout function
   const handleLogout = () => {
+    // Clear all stored data
     localStorage.removeItem('hospitalUser');
+    localStorage.removeItem('hospitalToken');
+    localStorage.removeItem('token');
     sessionStorage.removeItem('hospitalUser');
+    sessionStorage.removeItem('hospitalToken');
+    sessionStorage.removeItem('token');
+
     alert('✅ Logged out successfully!');
     window.location.href = '/auth/login';
   };
 
-  // Sample notifications
-  const sampleNotifications = [
-    {
-      id: 1,
-      title: 'New Doctor Application',
-      message: 'Dr. Sarah Wilson has submitted an application',
-      time: '5 minutes ago',
-      type: 'application',
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: 2,
-      title: 'System Maintenance',
-      message: 'Scheduled maintenance tonight at 2:00 AM',
-      time: '1 hour ago',
-      type: 'system',
-      read: false,
-      priority: 'medium'
-    },
-    {
-      id: 3,
-      title: 'Department Budget Alert',
-      message: 'Cardiology department exceeded monthly budget',
-      time: '2 hours ago',
-      type: 'alert',
-      read: true,
-      priority: 'high'
-    },
-    {
-      id: 4,
-      title: 'Staff Meeting Reminder',
-      message: 'Weekly admin meeting scheduled for tomorrow',
-      time: '3 hours ago',
-      type: 'reminder',
-      read: true,
-      priority: 'low'
-    }
-  ];
-
-  // Initialize notifications
+  // Load notifications from API (placeholder for future implementation)
   useEffect(() => {
-    setNotifications(sampleNotifications);
+    const loadNotifications = async () => {
+      try {
+        // TODO: Implement notifications API
+        // For now, keep notifications empty until backend is ready
+        setNotifications([]);
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+        setNotifications([]);
+      }
+    };
+
+    loadNotifications();
   }, []);
+
+
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Listen for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      // Force re-render by updating version
+      setUserDataVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   // Handle notification click
   const handleNotificationClick = (notification) => {
@@ -148,10 +166,10 @@ const AdminLayout = ({ children }) => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 grid grid-cols-1 lg:grid-cols-[auto_1fr]">
-      
+    <div className="min-h-screen bg-gray-50 flex">
+
       {/* Sidebar */}
-      <Sidebar 
+      <Sidebar
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
         userRole="admin"
@@ -160,14 +178,16 @@ const AdminLayout = ({ children }) => {
       />
 
       {/* Main Content Container */}
-      <div className="grid grid-rows-[auto_auto_1fr_auto] min-h-screen">
+      <div className={`flex-1 flex flex-col layout-transition sidebar-content-gap ${
+        sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'
+      }`}>
         
         {/* Top Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8 h-16 grid grid-cols-[1fr_auto] items-center gap-4">
+          <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
             
             {/* Left Side */}
-            <div className="grid grid-cols-[auto_1fr] items-center gap-4">
+            <div className="flex items-center space-x-4">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setSidebarOpen(true)}
@@ -185,13 +205,13 @@ const AdminLayout = ({ children }) => {
                 {/* Breadcrumbs */}
                 <nav className="hidden sm:block text-sm text-gray-500">
                   {getBreadcrumbs().map((crumb, index) => (
-                    <span key={crumb.path} className="inline-block">
+                    <span key={`${crumb.path}-${index}`} className="inline-block">
                       {index > 0 && <span className="mx-2">/</span>}
                       <button
                         onClick={() => navigate(crumb.path)}
                         className={`hover:text-gray-700 transition-colors ${
-                          index === getBreadcrumbs().length - 1 
-                            ? 'text-gray-900 font-medium' 
+                          index === getBreadcrumbs().length - 1
+                            ? 'text-gray-900 font-medium'
                             : 'text-gray-500 hover:text-gray-700'
                         }`}
                       >
@@ -206,21 +226,7 @@ const AdminLayout = ({ children }) => {
             {/* Right Side */}
             <div className="grid grid-cols-[auto_auto_auto_auto] items-center gap-4">
               
-              {/* Quick Actions */}
-              <div className="hidden md:grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => navigate('/admin/patients/add')}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors whitespace-nowrap"
-                >
-                  + Add Patient
-                </button>
-                <button
-                  onClick={() => navigate('/admin/appointments/add')}
-                  className="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors whitespace-nowrap"
-                >
-                  + New Appointment
-                </button>
-              </div>
+              {/* Quick Actions - Removed Add Patient and New Appointment buttons */}
 
               {/* Search Button (Mobile) */}
               <button className="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100">
@@ -233,13 +239,13 @@ const AdminLayout = ({ children }) => {
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5v10z" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 grid place-items-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -303,8 +309,8 @@ const AdminLayout = ({ children }) => {
                 )}
               </div>
 
-              {/* Admin Profile with Logout Button */}
-              <div className="grid grid-cols-[auto_auto_auto] items-center gap-3">
+              {/* Admin Profile */}
+              <div className="grid grid-cols-[auto_auto] items-center gap-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900">{adminUser.name}</p>
                   <p className="text-xs text-gray-500">{adminUser.role}</p>
@@ -321,48 +327,26 @@ const AdminLayout = ({ children }) => {
                   </div>
                 </button>
 
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                >
-                  Logout
-                </button>
+
               </div>
             </div>
           </div>
         </header>
 
-        {/* Status Bar */}
-        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-2">
-          <div className="grid grid-cols-[1fr_auto] items-center text-sm">
-            <div className="grid grid-cols-[auto_auto_auto] items-center gap-4 text-gray-600">
-              <span className="grid grid-cols-[auto_1fr] items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                System Status: Online
-              </span>
-              <span>|</span>
-              <span>Last Login: {new Date(adminUser.lastLogin).toLocaleDateString()}</span>
-            </div>
-            
-            <div className="text-gray-600">
-              <span>Server Time: {new Date().toLocaleTimeString()}</span>
-            </div>
-          </div>
-        </div>
+
 
         {/* Main Content Area */}
-        <main className="overflow-auto">
+        <main className="layout-main">
           {/* Page Content */}
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="content-padding">
             {children}
           </div>
         </main>
 
         {/* Footer */}
         <footer className="bg-white border-t border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-[1fr_auto] items-center text-sm text-gray-600">
-            <div className="grid grid-cols-[auto_auto_auto_auto_auto] items-center gap-4">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center space-x-4">
               <span>© 2025 Hospital Management System</span>
               <span>|</span>
               <button className="hover:text-gray-900 transition-colors">
@@ -373,14 +357,9 @@ const AdminLayout = ({ children }) => {
                 Documentation
               </button>
             </div>
-            
-            <div className="grid grid-cols-[auto_auto_auto] items-center gap-4">
+
+            <div className="flex items-center space-x-4">
               <span>Version 2.1.0</span>
-              <span>|</span>
-              <span className="grid grid-cols-[auto_1fr] items-center gap-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                All Systems Operational
-              </span>
             </div>
           </div>
         </footer>

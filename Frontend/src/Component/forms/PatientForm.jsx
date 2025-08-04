@@ -1,53 +1,43 @@
 // Component/forms/PatientForm.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-const PatientForm = ({ 
-  onSubmit, 
+const PatientForm = ({
+  onSubmit,
   initialData = null,
   loading = false,
-  insuranceProviders = [],
-  emergencyContacts = [],
   className = '',
   mode = 'create' // 'create' or 'edit'
 }) => {
-  const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(initialData?.profileImage || null);
-  const [formStep, setFormStep] = useState(1);
-  const [formErrors, setFormErrors] = useState({});
-
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors }, 
-    reset, 
-    watch, 
-    setValue,
-    getValues 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset
   } = useForm({
     defaultValues: initialData || {
-      status: 'active',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dateOfBirth: '',
       gender: '',
-      bloodGroup: '',
-      maritalStatus: '',
-      emergencyContactRelation: '',
-      hasInsurance: false,
-      isMinor: false
+      address: ''
     }
   });
 
-  // Watch form values for dynamic updates
-  const watchedValues = watch();
+  // Handle form submission
+  const handleFormSubmit = (data) => {
+    // Generate patient ID if creating new patient
+    const finalData = {
+      ...data,
+      patientId: mode === 'create' ? `PAT-${Date.now()}` : initialData?.patientId,
+      createdAt: mode === 'create' ? new Date().toISOString() : initialData?.createdAt,
+      updatedAt: new Date().toISOString()
+    };
 
-  // Calculate age from date of birth
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return 0;
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    onSubmit(finalData);
+  };
       age--;
     }
     return age;

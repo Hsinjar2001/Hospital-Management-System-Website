@@ -39,60 +39,11 @@ const AppointmentForm = ({
   // Watch form values for dynamic updates
   const watchedValues = watch();
 
-  // Sample data (replace with actual data from props or API)
-  const defaultDepartments = departments.length > 0 ? departments : [
-    { id: 'cardiology', name: 'Cardiology', icon: '❤️' },
-    { id: 'neurology', name: 'Neurology', icon: '🧠' },
-    { id: 'orthopedics', name: 'Orthopedics', icon: '🦴' },
-    { id: 'pediatrics', name: 'Pediatrics', icon: '👶' },
-    { id: 'dermatology', name: 'Dermatology', icon: '🌟' },
-    { id: 'gynecology', name: 'Gynecology', icon: '👩‍⚕️' },
-    { id: 'internal-medicine', name: 'Internal Medicine', icon: '🏥' },
-    { id: 'psychiatry', name: 'Psychiatry', icon: '🧘‍♂️' }
-  ];
+  // Use only real departments from props - no dummy data
+  const defaultDepartments = departments || [];
 
-  const defaultDoctors = doctors.length > 0 ? doctors : [
-    { 
-      id: 1, 
-      name: 'Dr. John Smith', 
-      department: 'cardiology', 
-      specialty: 'Cardiologist',
-      experience: '15 years',
-      fee: 150,
-      rating: 4.8,
-      availability: 'Available'
-    },
-    { 
-      id: 2, 
-      name: 'Dr. Sarah Johnson', 
-      department: 'neurology', 
-      specialty: 'Neurologist',
-      experience: '12 years',
-      fee: 200,
-      rating: 4.9,
-      availability: 'Available'
-    },
-    { 
-      id: 3, 
-      name: 'Dr. Michael Wilson', 
-      department: 'orthopedics', 
-      specialty: 'Orthopedic Surgeon',
-      experience: '18 years',
-      fee: 180,
-      rating: 4.7,
-      availability: 'Available'
-    },
-    { 
-      id: 4, 
-      name: 'Dr. Emily Davis', 
-      department: 'pediatrics', 
-      specialty: 'Pediatrician',
-      experience: '10 years',
-      fee: 120,
-      rating: 4.9,
-      availability: 'Available'
-    }
-  ];
+  // Use only provided doctors - no dummy data
+  const defaultDoctors = doctors;
 
   const defaultTimeSlots = timeSlots.length > 0 ? timeSlots : [
     '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM',

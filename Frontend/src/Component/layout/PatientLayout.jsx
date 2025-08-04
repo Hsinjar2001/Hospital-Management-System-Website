@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 
@@ -7,33 +7,71 @@ const PatientLayout = ({ children }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [healthReminders, setHealthReminders] = useState([]);
+
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [userDataVersion, setUserDataVersion] = useState(0); // Force re-render when user data changes
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Sample patient user data (replace with actual user context)
-  const patientUser = {
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    role: 'Patient',
-    patientId: 'PAT-2024-001',
-    age: 34,
-    bloodGroup: 'O+',
-    avatar: null,
-    lastLogin: '2024-01-15T09:30:00Z',
-    memberSince: '2020-03-15',
-    insuranceProvider: 'Blue Cross Blue Shield',
-    primaryDoctor: 'Dr. Sarah Johnson',
-    emergencyContact: 'Jane Doe (Wife)',
-    nextAppointment: '2024-01-20T14:00:00Z',
-    healthStatus: 'good' // excellent, good, fair, poor
+  // Get real patient user data from localStorage/sessionStorage
+  const getPatientUser = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          name: `${userData.firstName} ${userData.lastName}`,
+          email: userData.email,
+          role: 'Patient',
+          patientId: `PAT-${userData.id.toString().padStart(4, '0')}`,
+          age: userData.age || 'Not specified',
+          bloodGroup: userData.bloodGroup || 'Not specified',
+          avatar: userData.profileImage || null,
+          lastLogin: userData.lastLoginAt || new Date().toISOString(),
+          memberSince: userData.createdAt || '2024-01-01',
+          insuranceProvider: userData.insuranceProvider || 'Not specified',
+          primaryDoctor: userData.primaryDoctor || 'Not assigned',
+          emergencyContact: userData.emergencyContact || 'Not provided',
+          nextAppointment: userData.nextAppointment || null,
+          healthStatus: userData.healthStatus || 'good',
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        };
+      }
+    } catch (error) {
+      console.error('Error getting patient user data:', error);
+    }
+    // Fallback to sample data if no user found
+    return {
+      name: 'John Doe',
+      email: 'john.doe@email.com',
+      role: 'Patient',
+      patientId: 'PAT-2024-001',
+      age: 34,
+      bloodGroup: 'O+',
+      avatar: null,
+      lastLogin: '2024-01-15T09:30:00Z',
+      memberSince: '2020-03-15',
+      insuranceProvider: 'Blue Cross Blue Shield',
+      primaryDoctor: 'Dr. Sarah Johnson',
+      emergencyContact: 'Jane Doe (Wife)',
+      nextAppointment: '2024-01-20T14:00:00Z',
+      healthStatus: 'good'
+    };
   };
+
+  const patientUser = useMemo(() => getPatientUser(), [userDataVersion]);
 
   // Logout function
   const handleLogout = () => {
+    // Clear all stored data
     localStorage.removeItem('hospitalUser');
+    localStorage.removeItem('hospitalToken');
+    localStorage.removeItem('token');
     sessionStorage.removeItem('hospitalUser');
+    sessionStorage.removeItem('hospitalToken');
+    sessionStorage.removeItem('token');
+
     alert('✅ Logged out successfully!');
     window.location.href = '/auth/login';
   };
@@ -90,33 +128,7 @@ const PatientLayout = ({ children }) => {
     }
   ];
 
-  // Sample health reminders
-  const sampleHealthReminders = [
-    {
-      id: 1,
-      title: 'Take Medication',
-      message: 'Time to take your daily medication',
-      time: '9:00 AM',
-      type: 'medication',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      title: 'Drink Water',
-      message: 'Stay hydrated - drink a glass of water',
-      time: 'Every 2 hours',
-      type: 'hydration',
-      status: 'active'
-    },
-    {
-      id: 3,
-      title: 'Blood Pressure Check',
-      message: 'Weekly blood pressure monitoring',
-      time: 'Weekly',
-      type: 'monitoring',
-      status: 'due'
-    }
-  ];
+
 
   // Patient's health stats
   const healthStats = {
@@ -131,7 +143,7 @@ const PatientLayout = ({ children }) => {
   // Initialize notifications and reminders
   useEffect(() => {
     setNotifications(sampleNotifications);
-    setHealthReminders(sampleHealthReminders);
+
     
     // Update time every minute
     const timeInterval = setInterval(() => {
@@ -145,6 +157,20 @@ const PatientLayout = ({ children }) => {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  // Listen for user data updates
+  useEffect(() => {
+    const handleUserDataUpdate = (event) => {
+      // Force re-render by updating version
+      setUserDataVersion(prev => prev + 1);
+    };
+
+    window.addEventListener('userDataUpdated', handleUserDataUpdate);
+
+    return () => {
+      window.removeEventListener('userDataUpdated', handleUserDataUpdate);
+    };
+  }, []);
 
   // Handle notification click
   const handleNotificationClick = (notification) => {
@@ -271,8 +297,8 @@ const PatientLayout = ({ children }) => {
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+      <div className={`flex-1 flex flex-col layout-transition sidebar-content-gap ${
+        sidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'
       }`}>
         
         {/* Top Header */}
@@ -318,53 +344,18 @@ const PatientLayout = ({ children }) => {
 
             {/* Right Side */}
             <div className="flex items-center space-x-4">
-              
-              {/* Health Score (Desktop) */}
-              <div className="hidden lg:flex items-center space-x-3 px-3 py-1 bg-purple-50 rounded-full">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <span className="text-sm font-medium text-purple-700">
-                  Health Score: {healthStats.healthScore}%
-                </span>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="hidden md:flex items-center space-x-2">
-                <button
-                  onClick={() => navigate('/patient/appointments/book')}
-                  className="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 rounded-md hover:bg-purple-100 transition-colors"
-                >
-                  Book Appointment
-                </button>
-                <button
-                  onClick={() => navigate('/patient/doctors')}
-                  className="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                >
-                  Find Doctor
-                </button>
-              </div>
-
-              {/* Emergency Contact */}
-              <button
-                onClick={() => navigate('/patient/emergency')}
-                className="p-2 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500"
-                title="Emergency Contact"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-              </button>
 
               {/* Notifications */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="relative p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5-5v10z" />
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
                   </svg>
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -439,7 +430,7 @@ const PatientLayout = ({ children }) => {
                 )}
               </div>
 
-              {/* Patient Profile with Logout Button */}
+              {/* Patient Profile */}
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <div className="flex items-center space-x-2">
@@ -460,88 +451,22 @@ const PatientLayout = ({ children }) => {
                   </div>
                 </button>
 
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
-                >
-                  Logout
-                </button>
+
               </div>
             </div>
           </div>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-auto">
-          {/* Patient Info Bar */}
-          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-6 text-gray-600">
-                <span className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${getHealthStatusColor(patientUser.healthStatus)}`}></div>
-                  Health Status: {getHealthStatusText(patientUser.healthStatus)}
-                </span>
-                <span>|</span>
-                <span>Primary Doctor: {patientUser.primaryDoctor}</span>
-                <span>|</span>
-                <span>Blood Group: {patientUser.bloodGroup}</span>
-              </div>
-              
-              <div className="flex items-center space-x-4 text-gray-600">
-                <span>Next Appointment: {getNextAppointmentInfo()}</span>
-                <span>|</span>
-                <span>Member Since: {new Date(patientUser.memberSince).getFullYear()}</span>
-              </div>
-            </div>
-          </div>
+        <main className="layout-main">
 
-          {/* Health Stats Bar (Mobile) */}
-          <div className="lg:hidden bg-purple-50 border-b border-purple-200 px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center justify-around text-sm">
-              <div className="text-center">
-                <span className="block font-semibold text-purple-900">{healthStats.upcomingAppointments}</span>
-                <span className="text-purple-700">Upcoming</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-blue-900">{healthStats.activePrescritions}</span>
-                <span className="text-blue-700">Prescriptions</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-green-900">{healthStats.healthScore}%</span>
-                <span className="text-green-700">Health Score</span>
-              </div>
-              <div className="text-center">
-                <span className="block font-semibold text-orange-900">{healthStats.pendingBills}</span>
-                <span className="text-orange-700">Pending Bills</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Health Reminders Bar */}
-          {healthReminders.filter(r => r.status === 'due' || r.status === 'pending').length > 0 && (
-            <div className="bg-yellow-50 border-b border-yellow-200 px-4 sm:px-6 lg:px-8 py-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  <span className="text-sm font-medium text-yellow-800">
-                    Health Reminders: {healthReminders.filter(r => r.status === 'due').length} due, {healthReminders.filter(r => r.status === 'pending').length} pending
-                  </span>
-                </div>
-                <button
-                  onClick={() => navigate('/patient/health-reminders')}
-                  className="text-sm text-yellow-700 hover:text-yellow-900 font-medium"
-                >
-                  View All
-                </button>
-              </div>
-            </div>
-          )}
+
+
+
 
           {/* Page Content */}
-          <div className="p-4 sm:p-6 lg:p-8">
+          <div className="content-padding">
             {children}
           </div>
         </main>

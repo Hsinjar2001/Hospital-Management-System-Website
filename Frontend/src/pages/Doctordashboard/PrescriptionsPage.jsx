@@ -16,86 +16,11 @@ const PrescriptionPage = () => {
 
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
 
-  // Sample prescriptions data
-  const samplePrescriptions = [
-    {
-      id: 'RX-001',
-      patientName: 'John Doe',
-      patientId: 'PAT-001',
-      medications: [
-        {
-          name: 'Lisinopril',
-          dosage: '10mg',
-          frequency: 'Once daily',
-          duration: '30 days',
-          instructions: 'Take with food in the morning'
-        },
-        {
-          name: 'Metformin',
-          dosage: '500mg',
-          frequency: 'Twice daily',
-          duration: '30 days',
-          instructions: 'Take with meals'
-        }
-      ],
-      createdDate: '2024-01-20',
-      status: 'active',
-      diagnosis: 'Hypertension, Type 2 Diabetes',
-      notes: 'Patient tolerating medications well. Follow up in 4 weeks.',
-      refills: 2,
-      pharmacy: 'Central Pharmacy'
-    },
-    {
-      id: 'RX-002',
-      patientName: 'Jane Smith',
-      patientId: 'PAT-002',
-      medications: [
-        {
-          name: 'Ibuprofen',
-          dosage: '400mg',
-          frequency: 'Three times daily',
-          duration: '7 days',
-          instructions: 'Take with food. Do not exceed 1200mg per day'
-        }
-      ],
-      createdDate: '2024-01-19',
-      status: 'completed',
-      diagnosis: 'Post-operative pain management',
-      notes: 'Short-term pain relief post-surgery.',
-      refills: 0,
-      pharmacy: 'Main Street Pharmacy'
-    },
-    {
-      id: 'RX-003',
-      patientName: 'Robert Brown',
-      patientId: 'PAT-003',
-      medications: [
-        {
-          name: 'Amoxicillin',
-          dosage: '500mg',
-          frequency: 'Three times daily',
-          duration: '10 days',
-          instructions: 'Complete full course even if feeling better'
-        }
-      ],
-      createdDate: '2024-01-18',
-      status: 'pending',
-      diagnosis: 'Bacterial infection',
-      notes: 'Patient allergic to penicillin - using alternative antibiotic.',
-      refills: 0,
-      pharmacy: 'City Pharmacy'
-    }
-  ];
+  // Empty prescriptions data - no dummy data
+  const samplePrescriptions = [];
 
-  // Sample medications database
-  const medicationsDatabase = [
-    { name: 'Lisinopril', category: 'ACE Inhibitor', commonDosages: ['5mg', '10mg', '20mg'] },
-    { name: 'Metformin', category: 'Antidiabetic', commonDosages: ['500mg', '750mg', '1000mg'] },
-    { name: 'Ibuprofen', category: 'NSAID', commonDosages: ['200mg', '400mg', '600mg'] },
-    { name: 'Amoxicillin', category: 'Antibiotic', commonDosages: ['250mg', '500mg', '875mg'] },
-    { name: 'Atorvastatin', category: 'Statin', commonDosages: ['10mg', '20mg', '40mg', '80mg'] },
-    { name: 'Omeprazole', category: 'PPI', commonDosages: ['20mg', '40mg'] }
-  ];
+  // Empty medications database - no dummy data
+  const medicationsDatabase = [];
 
   // Load prescriptions
   useEffect(() => {

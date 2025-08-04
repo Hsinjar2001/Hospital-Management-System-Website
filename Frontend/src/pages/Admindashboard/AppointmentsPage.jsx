@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { appointmentsAPI } from '../../services/api';
 
 const AppointmentsPage = () => {
   const navigate = useNavigate();
@@ -18,130 +19,47 @@ const AppointmentsPage = () => {
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
-  // Sample appointments data
-  const sampleAppointments = [
-    {
-      id: 'APT-001',
-      patientName: 'John Doe',
-      patientId: 'PAT-001',
-      doctorName: 'Dr. Sarah Johnson',
-      doctorId: 'DOC-001',
-      department: 'Cardiology',
-      appointmentDate: '2024-01-20',
-      appointmentTime: '10:00 AM',
-      duration: '30 minutes',
-      status: 'scheduled',
-      type: 'consultation',
-      priority: 'normal',
-      reason: 'Regular checkup for heart palpitations',
-      patientPhone: '+1 (555) 123-4567',
-      patientEmail: 'john.doe@email.com',
-      notes: 'Patient requested morning appointment',
-      createdAt: '2024-01-15T10:00:00Z',
-      updatedAt: '2024-01-15T10:00:00Z'
-    },
-    {
-      id: 'APT-002',
-      patientName: 'Jane Smith',
-      patientId: 'PAT-002',
-      doctorName: 'Dr. Michael Wilson',
-      doctorId: 'DOC-002',
-      department: 'Orthopedics',
-      appointmentDate: '2024-01-20',
-      appointmentTime: '2:30 PM',
-      duration: '45 minutes',
-      status: 'confirmed',
-      type: 'follow-up',
-      priority: 'high',
-      reason: 'Post-surgery follow-up',
-      patientPhone: '+1 (555) 987-6543',
-      patientEmail: 'jane.smith@email.com',
-      notes: 'Bring X-ray reports',
-      createdAt: '2024-01-14T14:30:00Z',
-      updatedAt: '2024-01-16T09:15:00Z'
-    },
-    {
-      id: 'APT-003',
-      patientName: 'Robert Brown',
-      patientId: 'PAT-003',
-      doctorName: 'Dr. Emily Davis',
-      doctorId: 'DOC-003',
-      department: 'Pediatrics',
-      appointmentDate: '2024-01-21',
-      appointmentTime: '11:00 AM',
-      duration: '30 minutes',
-      status: 'completed',
-      type: 'consultation',
-      priority: 'normal',
-      reason: 'Child vaccination',
-      patientPhone: '+1 (555) 456-7890',
-      patientEmail: 'robert.brown@email.com',
-      notes: 'Child is 5 years old',
-      createdAt: '2024-01-13T11:00:00Z',
-      updatedAt: '2024-01-21T11:30:00Z'
-    },
-    {
-      id: 'APT-004',
-      patientName: 'Lisa Anderson',
-      patientId: 'PAT-004',
-      doctorName: 'Dr. James Miller',
-      doctorId: 'DOC-004',
-      department: 'Dermatology',
-      appointmentDate: '2024-01-22',
-      appointmentTime: '3:00 PM',
-      duration: '30 minutes',
-      status: 'cancelled',
-      type: 'consultation',
-      priority: 'low',
-      reason: 'Skin condition evaluation',
-      patientPhone: '+1 (555) 321-0987',
-      patientEmail: 'lisa.anderson@email.com',
-      notes: 'Patient cancelled due to emergency',
-      createdAt: '2024-01-12T15:00:00Z',
-      updatedAt: '2024-01-20T10:00:00Z'
-    },
-    {
-      id: 'APT-005',
-      patientName: 'David Wilson',
-      patientId: 'PAT-005',
-      doctorName: 'Dr. Sarah Johnson',
-      doctorId: 'DOC-001',
-      department: 'Cardiology',
-      appointmentDate: '2024-01-23',
-      appointmentTime: '9:30 AM',
-      duration: '60 minutes',
-      status: 'scheduled',
-      type: 'procedure',
-      priority: 'high',
-      reason: 'ECG and stress test',
-      patientPhone: '+1 (555) 654-3210',
-      patientEmail: 'david.wilson@email.com',
-      notes: 'Fasting required before procedure',
-      createdAt: '2024-01-16T09:30:00Z',
-      updatedAt: '2024-01-16T09:30:00Z'
-    }
-  ];
+  // Load appointments data from API
+  useEffect(() => {
+    const loadAppointments = async () => {
+      setLoading(true);
+      try {
+        const response = await appointmentsAPI.getAll();
+        if (response.success && response.data) {
+          setAppointments(response.data.appointments || []);
+          setFilteredAppointments(response.data.appointments || []);
+        } else {
+          console.error('Failed to load appointments:', response.error);
+          setAppointments([]);
+          setFilteredAppointments([]);
+        }
+      } catch (error) {
+        console.error('Error loading appointments:', error);
+        setAppointments([]);
+        setFilteredAppointments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Sample doctors data
-  const doctors = [
-    { id: 'DOC-001', name: 'Dr. Sarah Johnson', department: 'Cardiology' },
-    { id: 'DOC-002', name: 'Dr. Michael Wilson', department: 'Orthopedics' },
-    { id: 'DOC-003', name: 'Dr. Emily Davis', department: 'Pediatrics' },
-    { id: 'DOC-004', name: 'Dr. James Miller', department: 'Dermatology' },
-    { id: 'DOC-005', name: 'Dr. Anna Rodriguez', department: 'Neurology' }
-  ];
+    loadAppointments();
+  }, []);
 
   // Load appointments
   useEffect(() => {
     const loadAppointments = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setAppointments(sampleAppointments);
-        setFilteredAppointments(sampleAppointments);
+        // Fetch real appointments from API
+        const response = await appointmentsAPI.getAll();
+        const appointmentsData = response.data?.appointments || [];
+        setAppointments(appointmentsData);
+        setFilteredAppointments(appointmentsData);
       } catch (error) {
         console.error('Error loading appointments:', error);
+        // Set empty arrays on error
+        setAppointments([]);
+        setFilteredAppointments([]);
       } finally {
         setLoading(false);
       }
