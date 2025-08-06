@@ -1,78 +1,154 @@
 const express = require('express');
 const router = express.Router();
-const { User, Patient, Doctor, Appointment, Department, Prescription, Invoice } = require('../models');
-const { protect } = require('../middlewares/authMiddleware');
+const { User, Appointment, Prescription, Invoice, sequelize } = require('../models');
+const { authenticateToken: protect } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
-// @desc    Get admin dashboard stats
-// @route   GET /api/dashboard/admin
-// @access  Private (Admin only)
 router.get('/admin', protect, async (req, res) => {
   try {
     console.log('🔍 Admin dashboard route hit by user:', req.user?.email);
 
-    // Get real data from database
-    const [totalPatients, totalDoctors, totalAppointments, totalDepartments] = await Promise.all([
-      Patient.count(),
-      Doctor.count(),
-      Appointment.count(),
-      Department.count()
+    const [totalPatients, totalDoctors, totalAppointments] = await Promise.all([
+      User.count({ where: { role: 'patient' } }),
+      User.count({ where: { role: 'doctor' } }),
+      Appointment.count()
     ]);
 
-    // Get recent appointments with patient and doctor details
     const recentAppointments = await Appointment.findAll({
       limit: 10,
       order: [['createdAt', 'DESC']],
       include: [
         {
-          model: Patient,
+          model: User,
+          as: 'patient',
           attributes: ['firstName', 'lastName', 'phone']
         },
         {
-          model: Doctor,
-          attributes: ['firstName', 'lastName', 'specialty'],
-          include: [{
-            model: User,
-            attributes: ['firstName', 'lastName']
-          }]
+          model: User,
+          as: 'doctor',
+          attributes: ['firstName', 'lastName']
         }
       ]
     });
 
-    // Calculate monthly statistics (current month vs previous month)
     const currentDate = new Date();
     const currentMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const previousMonthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const previousMonthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
 
-    const [currentMonthPatients, previousMonthPatients, currentMonthAppointments, previousMonthAppointments] = await Promise.all([
-      Patient.count({ where: { createdAt: { [Op.gte]: currentMonthStart } } }),
-      Patient.count({ where: { createdAt: { [Op.between]: [previousMonthStart, previousMonthEnd] } } }),
-      Appointment.count({ where: { createdAt: { [Op.gte]: currentMonthStart } } }),
-      Appointment.count({ where: { createdAt: { [Op.between]: [previousMonthStart, previousMonthEnd] } } })
+    const [currentMonthPatients, previousMonthPatients] = await Promise.all([
+      User.count({
+        where: {
+          role: 'patient',
+          createdAt: { [Op.gte]: currentMonthStart }
+        }
+      }),
+      User.count({
+        where: {
+          role: 'patient',
+          createdAt: {
+            [Op.gte]: previousMonthStart,
+            [Op.lte]: previousMonthEnd
+          }
+        }
+      })
     ]);
 
-    // Calculate percentage changes
-    const patientsChange = previousMonthPatients > 0 ?
-      Math.round(((currentMonthPatients - previousMonthPatients) / previousMonthPatients) * 100) : 0;
-    const appointmentsChange = previousMonthAppointments > 0 ?
-      Math.round(((currentMonthAppointments - previousMonthAppointments) / previousMonthAppointments) * 100) : 0;
+    const [currentMonthDoctors, previousMonthDoctors] = await Promise.all([
+      User.count({
+        where: {
+          role: 'doctor',
+          createdAt: { [Op.gte]: currentMonthStart }
+        }
+      }),
+      User.count({
+        where: {
+          role: 'doctor',
+          createdAt: {
+            [Op.gte]: previousMonthStart,
+            [Op.lte]: previousMonthEnd
+          }
+        }
+      })
+    ]);
+
+    const [currentMonthAppointments, previousMonthAppointments] = await Promise.all([
+      Appointment.count({
+        where: {
+          createdAt: { [Op.gte]: currentMonthStart }
+        }
+      }),
+      Appointment.count({
+        where: {
+          createdAt: {
+            [Op.gte]: previousMonthStart,
+            [Op.lte]: previousMonthEnd
+          }
+        }
+      })
+    ]);
+
+    const patientsChange = previousMonthPatients > 0 
+      ? ((currentMonthPatients - previousMonthPatients) / previousMonthPatients) * 100 
+      : 0;
+    
+    const doctorsChange = previousMonthDoctors > 0 
+      ? ((currentMonthDoctors - previousMonthDoctors) / previousMonthDoctors) * 100 
+      : 0;
+    
+    const appointmentsChange = previousMonthAppointments > 0 
+      ? ((currentMonthAppointments - previousMonthAppointments) / previousMonthAppointments) * 100 
+      : 0;
+
+    const totalRevenue = await Invoice.sum('total_amount', {
+      where: { payment_status: 'paid' }
+    }) || 0;
+
+    const pendingPayments = await Invoice.sum('total_amount', {
+      where: { payment_status: 'pending' }
+    }) || 0;
+
+    const topDoctors = await User.findAll({
+      where: { role: 'doctor' },
+      attributes: ['id', 'firstName', 'lastName', 'specialty'],
+      include: [{
+        model: Appointment,
+        attributes: [],
+        required: false
+      }],
+      group: ['User.id'],
+      order: [[sequelize.fn('COUNT', sequelize.col('Appointments.id')), 'DESC']],
+      limit: 5
+    });
+
+    const totalPrescriptions = await Prescription.count();
+    const activePrescriptions = await Prescription.count({
+      where: { status: 'active' }
+    });
+    const totalDepartments = await User.count({
+      where: { role: 'doctor' },
+      attributes: [[sequelize.fn('DISTINCT', sequelize.col('specialty')), 'specialty']],
+      group: ['specialty']
+    }).then(result => result.length);
 
     res.json({
       success: true,
       data: {
-        totalPatients,
-        totalDoctors,
-        totalAppointments,
-        totalDepartments,
-        monthlyAppointments: currentMonthAppointments,
-        monthlyPatients: currentMonthPatients,
-        patientsChange,
-        doctorsChange: 0, // Would need historical doctor data to calculate
-        appointmentsChange,
-        totalRevenue: 0, // Would need invoice/payment data to calculate
-        recentAppointments
-      }
+          totalPatients,
+          totalDoctors,
+          totalAppointments,
+          totalDepartments,
+          totalRevenue,
+          pendingPayments,
+          activePrescriptions,
+          patientsChange: Math.round(patientsChange * 100) / 100,
+          doctorsChange: Math.round(doctorsChange * 100) / 100,
+          appointmentsChange: Math.round(appointmentsChange * 100) / 100,
+          monthlyAppointments: currentMonthAppointments,
+          monthlyPatients: currentMonthPatients,
+          recentAppointments,
+          topDoctors
+        }
     });
   } catch (error) {
     console.error('Admin dashboard error:', error);
@@ -83,14 +159,10 @@ router.get('/admin', protect, async (req, res) => {
   }
 });
 
-// @desc    Get doctor dashboard stats
-// @route   GET /api/dashboard/doctor
-// @access  Private (Doctor only)
 router.get('/doctor', protect, async (req, res) => {
   try {
     const doctorId = req.user.id;
 
-    // Get doctor's appointments
     const totalPatients = await Appointment.count({
       distinct: true,
       col: 'patientId',
@@ -105,8 +177,8 @@ router.get('/doctor', protect, async (req, res) => {
     const todayAppointments = await Appointment.count({
       where: {
         doctorId,
-        appointmentDate: {
-          [require('sequelize').Op.between]: [todayStart, todayEnd]
+        appointment_date: {
+          [Op.between]: [todayStart, todayEnd]
         }
       }
     });
@@ -125,18 +197,21 @@ router.get('/doctor', protect, async (req, res) => {
       }
     });
 
-    // Get today's appointments with patient details
     const todayAppointmentsList = await Appointment.findAll({
       where: {
         doctorId,
-        appointmentDate: {
+        appointment_date: {
           [Op.between]: [todayStart, todayEnd]
         }
       },
       include: [
-        { model: Patient, attributes: ['firstName', 'lastName', 'phone'] }
+        {
+          model: User,
+          as: 'patient',
+          attributes: ['firstName', 'lastName', 'phone']
+        }
       ],
-      order: [['appointmentTime', 'ASC']]
+      order: [['appointment_time', 'ASC']]
     });
 
     res.json({
@@ -146,12 +221,9 @@ router.get('/doctor', protect, async (req, res) => {
           totalPatients,
           todayAppointments,
           completedAppointments,
-          pendingPrescriptions,
-          avgRating: 4.5, // Placeholder
-          totalReviews: 0 // Placeholder
+          pendingPrescriptions
         },
-        todayAppointments: todayAppointmentsList,
-        upcomingAppointments: todayAppointmentsList
+        todaySchedule: todayAppointmentsList
       }
     });
   } catch (error) {
@@ -163,28 +235,16 @@ router.get('/doctor', protect, async (req, res) => {
   }
 });
 
-// @desc    Get patient dashboard stats
-// @route   GET /api/dashboard/patient
-// @access  Private (Patient only)
 router.get('/patient', protect, async (req, res) => {
   try {
-    // Find the patient record for this user
-    const patient = await Patient.findOne({ where: { userId: req.user.id } });
-    if (!patient) {
-      return res.status(404).json({
-        success: false,
-        error: 'Patient profile not found'
-      });
-    }
-    const patientId = patient.id;
+    const patientId = req.user.id;
 
-    // Get patient's appointments
     const upcomingAppointments = await Appointment.count({
       where: {
         patientId,
         status: 'scheduled',
-        appointmentDate: {
-          [require('sequelize').Op.gte]: new Date()
+        appointment_date: {
+          [Op.gte]: new Date()
         }
       }
     });
@@ -203,34 +263,40 @@ router.get('/patient', protect, async (req, res) => {
       }
     });
 
-    const outstandingBills = await Invoice.sum('totalAmount', {
+    const outstandingBills = await Invoice.sum('total_amount', {
       where: {
         patientId,
-        paymentStatus: 'pending'
+        payment_status: 'pending'
       }
     }) || 0;
 
-    // Get upcoming appointments with doctor details
     const upcomingAppointmentsList = await Appointment.findAll({
       where: {
         patientId,
         status: 'scheduled',
-        appointmentDate: {
-          [require('sequelize').Op.gte]: new Date()
+        appointment_date: {
+          [Op.gte]: new Date()
         }
       },
       include: [
-        { model: Doctor, attributes: ['firstName', 'lastName', 'specialty'] }
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['firstName', 'lastName']
+        }
       ],
-      order: [['appointmentDate', 'ASC'], ['appointmentTime', 'ASC']],
+      order: [['appointment_date', 'ASC'], ['appointment_time', 'ASC']],
       limit: 5
     });
 
-    // Get recent prescriptions
     const recentPrescriptions = await Prescription.findAll({
       where: { patientId },
       include: [
-        { model: Doctor, attributes: ['firstName', 'lastName'] }
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['firstName', 'lastName']
+        }
       ],
       order: [['createdAt', 'DESC']],
       limit: 5
@@ -246,15 +312,7 @@ router.get('/patient', protect, async (req, res) => {
           outstandingBills
         },
         upcomingAppointments: upcomingAppointmentsList,
-        recentPrescriptions,
-        healthMetrics: {
-          lastCheckup: 'Not available',
-          bloodPressure: 'Not recorded',
-          weight: 'Not recorded',
-          height: 'Not recorded',
-          bmi: 'Not calculated'
-        },
-        recentActivity: [] // Placeholder
+        recentPrescriptions
       }
     });
   } catch (error) {
@@ -266,19 +324,14 @@ router.get('/patient', protect, async (req, res) => {
   }
 });
 
-// @desc    Get dashboard stats by role
-// @route   GET /api/dashboard/stats
-// @access  Private
 router.get('/stats', protect, async (req, res) => {
   try {
     const { role, period = 'today' } = req.query;
     
-    // Basic stats that work for all roles
     const stats = {
-      totalPatients: await Patient.count(),
-      totalDoctors: await Doctor.count(),
-      totalAppointments: await Appointment.count(),
-      totalDepartments: await Department.count()
+      totalPatients: await User.count({ where: { role: 'patient' } }),
+      totalDoctors: await User.count({ where: { role: 'doctor' } }),
+      totalAppointments: await Appointment.count()
     };
 
     res.json({
