@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
 
 const Invoice = sequelize.define('Invoice', {
   id: {
@@ -7,7 +7,7 @@ const Invoice = sequelize.define('Invoice', {
     primaryKey: true,
     autoIncrement: true
   },
-  invoiceId: {
+  invoice_number: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
@@ -19,20 +19,19 @@ const Invoice = sequelize.define('Invoice', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'patients',
+      model: 'users',
       key: 'id'
     }
   },
   doctorId: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    field: 'doctor_id',
+    allowNull: false,
     references: {
-      model: 'doctors',
+      model: 'users',
       key: 'id'
     }
   },
-  appointmentId: {
+  appointment_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
@@ -40,29 +39,7 @@ const Invoice = sequelize.define('Invoice', {
       key: 'id'
     }
   },
-  prescriptionId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'prescriptions',
-      key: 'id'
-    }
-  },
-  invoiceDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
-  dueDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
-  items: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
-  },
-  subtotal: {
+  total_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0.00,
@@ -70,58 +47,7 @@ const Invoice = sequelize.define('Invoice', {
       min: 0
     }
   },
-  taxAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  taxRate: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  discountAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  discountPercentage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  insuranceAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  insuranceCoverage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  totalAmount: {
+  paid_amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
     defaultValue: 0.00,
@@ -129,216 +55,92 @@ const Invoice = sequelize.define('Invoice', {
       min: 0
     }
   },
-  paidAmount: {
+  due_amount: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  balanceAmount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  status: {
-    type: DataTypes.ENUM('draft', 'sent', 'paid', 'partial', 'overdue', 'cancelled', 'refunded'),
     allowNull: false,
-    defaultValue: 'draft'
+    defaultValue: 0.00,
+    validate: {
+      min: 0
+    }
   },
-  paymentStatus: {
+  payment_status: {
     type: DataTypes.ENUM('pending', 'paid', 'partial', 'overdue', 'cancelled'),
     allowNull: false,
     defaultValue: 'pending'
   },
-  paymentMethod: {
-    type: DataTypes.ENUM('cash', 'card', 'check', 'bank_transfer', 'insurance', 'online', 'other'),
+  payment_method: {
+    type: DataTypes.ENUM('cash', 'card', 'insurance', 'online', 'bank_transfer', 'other'),
     allowNull: true
   },
-  paymentDate: {
-    type: DataTypes.DATE,
+  invoice_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  due_date: {
+    type: DataTypes.DATEONLY,
     allowNull: true
   },
-  paymentReference: {
-    type: DataTypes.STRING,
+  paid_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
+  description: {
+    type: DataTypes.TEXT,
     allowNull: true
   },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  terms: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  billingAddress: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  shippingAddress: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  isUrgent: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  isRecurring: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  recurringFrequency: {
-    type: DataTypes.ENUM('weekly', 'monthly', 'quarterly', 'yearly'),
-    allowNull: true
-  },
-  nextBillingDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
-  reminderSent: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  reminderDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  overdueDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  lateFees: {
+  tax_amount: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
+    allowNull: false,
+    defaultValue: 0.00
   },
-  lateFeeRate: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  refundAmount: {
+  discount_amount: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0
-    }
-  },
-  refundDate: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  refundReason: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  cancelledAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  cancelledBy: {
-    type: DataTypes.ENUM('patient', 'doctor', 'admin', 'system'),
-    allowNull: true
-  },
-  cancellationReason: {
-    type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: false,
+    defaultValue: 0.00
   }
 }, {
   tableName: 'invoices',
   timestamps: true,
   indexes: [
     {
-      fields: ['patientId', 'invoiceDate']
+      fields: ['invoice_number']
     },
     {
-      fields: ['doctorId', 'invoiceDate']
+      fields: ['patient_id']
     },
     {
-      fields: ['status']
+      fields: ['doctor_id']
     },
     {
-      fields: ['paymentStatus']
+      fields: ['payment_status']
     },
     {
-      fields: ['dueDate']
+      fields: ['invoice_date']
     }
   ]
 });
 
-// Instance method to calculate total amount
-Invoice.prototype.calculateTotal = function() {
-  const subtotal = parseFloat(this.subtotal || 0);
-  const taxAmount = parseFloat(this.taxAmount || 0);
-  const discountAmount = parseFloat(this.discountAmount || 0);
-  const insuranceAmount = parseFloat(this.insuranceAmount || 0);
-  
-  return subtotal + taxAmount - discountAmount - insuranceAmount;
+Invoice.prototype.calculateDueAmount = function() {
+  return parseFloat(this.total_amount) - parseFloat(this.paid_amount);
 };
 
-// Instance method to calculate balance
-Invoice.prototype.calculateBalance = function() {
-  const total = this.calculateTotal();
-  const paid = parseFloat(this.paidAmount || 0);
-  return Math.max(0, total - paid);
-};
-
-// Instance method to check if invoice is overdue
 Invoice.prototype.isOverdue = function() {
-  if (!this.dueDate) return false;
+  if (!this.due_date) return false;
   const today = new Date();
-  const dueDate = new Date(this.dueDate);
-  return dueDate < today && this.paymentStatus !== 'paid';
+  const dueDate = new Date(this.due_date);
+  return today > dueDate && this.payment_status !== 'paid';
 };
 
-// Instance method to check if invoice is paid
-Invoice.prototype.isPaid = function() {
-  return this.paymentStatus === 'paid' || this.balanceAmount <= 0;
-};
-
-// Instance method to check if invoice is partially paid
-Invoice.prototype.isPartiallyPaid = function() {
-  const total = this.calculateTotal();
-  const paid = parseFloat(this.paidAmount || 0);
-  return paid > 0 && paid < total;
-};
-
-// Instance method to get days overdue
-Invoice.prototype.getDaysOverdue = function() {
-  if (!this.isOverdue()) return 0;
-  const today = new Date();
-  const dueDate = new Date(this.dueDate);
-  const diffTime = Math.abs(today - dueDate);
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-};
-
-// Instance method to calculate late fees
-Invoice.prototype.calculateLateFees = function() {
-  if (!this.isOverdue()) return 0;
-  const daysOverdue = this.getDaysOverdue();
-  const balance = this.calculateBalance();
-  const rate = parseFloat(this.lateFeeRate || 0) / 100;
-  return balance * rate * daysOverdue;
-};
-
-// Instance method to get payment percentage
-Invoice.prototype.getPaymentPercentage = function() {
-  const total = this.calculateTotal();
-  if (total === 0) return 100;
-  const paid = parseFloat(this.paidAmount || 0);
-  return Math.round((paid / total) * 100);
+Invoice.prototype.markAsPaid = function() {
+  this.paid_amount = this.total_amount;
+  this.due_amount = 0;
+  this.payment_status = 'paid';
+  this.paid_date = new Date().toISOString().split('T')[0];
 };
 
 module.exports = Invoice;

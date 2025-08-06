@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
 
 const User = sequelize.define('User', {
   id: {
@@ -53,121 +53,36 @@ const User = sequelize.define('User', {
     allowNull: false,
     defaultValue: 'patient'
   },
-  gender: {
-    type: DataTypes.ENUM('male', 'female', 'other'),
+  isActive: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  specialty: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  experience: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  qualification: {
+    type: DataTypes.STRING,
     allowNull: true
   },
   dateOfBirth: {
     type: DataTypes.DATEONLY,
     allowNull: true
   },
+  gender: {
+    type: DataTypes.ENUM('male', 'female', 'other'),
+    allowNull: true
+  },
   address: {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  city: {
+  emergencyContact: {
     type: DataTypes.STRING,
-    allowNull: true
-  },
-  state: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  zipCode: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-
-  // Admin/Staff specific fields (temporarily commented out until database is fixed)
-  /*
-  employeeId: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  department: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  position: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  bio: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  qualifications: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  specializations: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  languages: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  workSchedule: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  officeLocation: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  directReports: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  yearsOfExperience: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-
-  // Emergency contact information
-  emergencyContactName: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  emergencyContactPhone: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  emergencyContactRelation: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-
-  // Additional field
-  country: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  */
-
-  profileImage: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true
-  },
-  isEmailVerified: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  lastLoginAt: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  passwordResetToken: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  passwordResetExpires: {
-    type: DataTypes.DATE,
     allowNull: true
   }
 }, {
@@ -187,29 +102,12 @@ const User = sequelize.define('User', {
   }
 });
 
-// Instance method to compare password
 User.prototype.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Instance method to get full name
 User.prototype.getFullName = function() {
   return `${this.firstName} ${this.lastName}`;
-};
-
-// Instance method to check if user is admin
-User.prototype.isAdmin = function() {
-  return this.role === 'admin';
-};
-
-// Instance method to check if user is doctor
-User.prototype.isDoctor = function() {
-  return this.role === 'doctor';
-};
-
-// Instance method to check if user is patient
-User.prototype.isPatient = function() {
-  return this.role === 'patient';
 };
 
 module.exports = User;

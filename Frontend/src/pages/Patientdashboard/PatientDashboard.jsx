@@ -1,5 +1,5 @@
 // pages/Patientdashboard/PatientDashboard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dashboardAPI, appointmentsAPI, prescriptionsAPI, invoicesAPI } from '../../services/api';
 
@@ -37,7 +37,7 @@ const PatientDashboard = () => {
   const patientInfo = getPatientInfo();
 
   // Empty fallback data - prefer API data
-  const emptyDashboardData = {
+  const emptyDashboardData = useMemo(() => ({
     stats: {
       upcomingAppointments: 0,
       completedAppointments: 0,
@@ -54,7 +54,7 @@ const PatientDashboard = () => {
       bmi: 'Not calculated'
     },
     recentActivity: []
-  };
+  }), []);
 
   // Redirect to login if no user found
   useEffect(() => {
@@ -83,7 +83,7 @@ const PatientDashboard = () => {
     };
 
     loadDashboardData();
-  }, [patientInfo]);
+  }, [patientInfo, emptyDashboardData]);
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -201,8 +201,8 @@ const PatientDashboard = () => {
           </div>
 
           <div className="space-y-4">
-            {dashboardData.upcomingAppointments?.map((appointment) => (
-              <div key={appointment.id} className="flex items-center p-4 bg-blue-50 rounded-lg">
+            {dashboardData.upcomingAppointments?.map((appointment, index) => (
+              <div key={`upcoming-appointment-${index}-${appointment.id || 'no-id'}`} className="flex items-center p-4 bg-blue-50 rounded-lg">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -285,8 +285,8 @@ const PatientDashboard = () => {
             </div>
 
             <div className="space-y-3">
-              {dashboardData.recentPrescriptions?.map((prescription) => (
-                <div key={prescription.id} className="border border-gray-200 rounded-lg p-3">
+              {dashboardData.recentPrescriptions?.map((prescription, index) => (
+                <div key={`recent-prescription-${index}-${prescription.id || 'no-id'}`} className="border border-gray-200 rounded-lg p-3">
                   <h4 className="font-medium text-gray-900 text-sm">{prescription.medicationName}</h4>
                   <p className="text-xs text-gray-600">Prescribed by {prescription.prescribedBy}</p>
                   <div className="flex justify-between items-center mt-2">
@@ -334,7 +334,7 @@ const PatientDashboard = () => {
         
         <div className="space-y-3">
           {dashboardData.recentActivity?.map((activity, index) => (
-            <div key={index} className="flex items-center space-x-3">
+            <div key={`recent-activity-${index}-${activity.id || 'no-id'}`} className="flex items-center space-x-3">
               <div className="text-2xl">{getActivityIcon(activity.type)}</div>
               <div className="flex-1">
                 <p className="text-sm text-gray-900">{activity.description}</p>

@@ -55,11 +55,11 @@ const RegisterPage = () => {
       const result = await response.json();
       console.log('Backend registration response:', result);
 
-      if (response.ok && result.success) {
+      if (response.ok && result.status === 'success') {
         alert(`✅ Registration successful! Welcome ${result.data.user.firstName}!`);
         navigate('/auth/login');
       } else {
-        alert(`❌ Registration failed: ${result.error || 'Please try again.'}`);
+        alert(`❌ Registration failed: ${result.message || 'Please try again.'}`);
       }
 
     } catch (error) {

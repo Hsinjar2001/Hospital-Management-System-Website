@@ -1,49 +1,45 @@
-
+const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { User, Patient, Doctor } = require('../models');
 
-// Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: '30d',
   });
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
 const register = async (req, res) => {
   try {
-    console.log('🔍 Registration request received:', req.body);
-    const { firstName, lastName, email, password, phone, dateOfBirth, role = 'patient' } = req.body;
+    const { firstName, lastName, email, password, phone, role, specialty, experience, qualification, dateOfBirth, gender, address, emergencyContact } = req.body;
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    const userExists = await User.findOne({ where: { email } });
+    if (userExists) {
       return res.status(400).json({
-        success: false,
-        error: 'User with this email already exists'
+        status: 'error',
+        message: 'User already exists'
       });
     }
 
-    // Create user
     const user = await User.create({
       firstName,
       lastName,
       email,
       password,
       phone,
+      role: role || 'patient',
+      specialty,
+      experience,
+      qualification,
       dateOfBirth,
-      role
+      gender,
+      address,
+      emergencyContact
     });
 
-    // Generate token
     const token = generateToken(user.id);
 
     res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
+      status: 'success',
       data: {
         user: {
           id: user.id,
@@ -52,81 +48,51 @@ const register = async (req, res) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          isActive: user.isActive
+          specialty: user.specialty,
+          experience: user.experience,
+          qualification: user.qualification
         },
         token
       }
     });
   } catch (error) {
-    console.error('Registration error:', error);
-
-    // Handle specific validation errors
-    if (error.name === 'SequelizeValidationError') {
-      const validationErrors = error.errors.map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        details: validationErrors
-      });
-    }
-
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({
-        success: false,
-        error: 'Email already exists'
-      });
-    }
-
     res.status(500).json({
-      success: false,
-      error: 'Error registering user',
-      details: error.message
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
+    if (!email || !password) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide email and password'
       });
     }
 
-    // Check if user is active
+    const user = await User.findOne({ where: { email } });
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid email or password'
+      });
+    }
+
     if (!user.isActive) {
       return res.status(401).json({
-        success: false,
-        error: 'Account is deactivated'
+        status: 'error',
+        message: 'Account is deactivated'
       });
     }
 
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      });
-    }
-
-    // Update last login
-    await user.update({ lastLoginAt: new Date() });
-
-    // Generate token
     const token = generateToken(user.id);
 
     res.json({
-      success: true,
-      message: 'Login successful',
+      status: 'success',
       data: {
         user: {
           id: user.id,
@@ -135,272 +101,126 @@ const login = async (req, res) => {
           email: user.email,
           phone: user.phone,
           role: user.role,
-          isActive: user.isActive,
-          lastLoginAt: user.lastLoginAt
+          specialty: user.specialty,
+          experience: user.experience,
+          qualification: user.qualification
         },
         token
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error logging in'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Get current user
-// @route   GET /api/auth/me
-// @access  Private
-const getMe = async (req, res) => {
+const getProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] }
     });
 
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+
     res.json({
-      success: true,
+      status: 'success',
       data: { user }
     });
   } catch (error) {
-    console.error('Get me error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error getting user profile'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Update user profile
-// @route   PUT /api/auth/profile
-// @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const {
-      firstName, lastName, phone, gender, dateOfBirth, address, city, state, zipCode,
-      // Admin/Staff specific fields
-      employeeId, department, position, bio, qualifications, specializations,
-      languages, workSchedule, officeLocation, directReports, yearsOfExperience,
-      // Emergency contact
-      emergencyContactName, emergencyContactPhone, emergencyContactRelation,
-      // Patient-specific fields (for future use)
-      bloodGroup, allergies, medicalConditions, currentMedications, height, weight,
-      insuranceProvider, policyNumber, groupNumber
-    } = req.body;
+    const { firstName, lastName, phone, specialty, experience, qualification, dateOfBirth, gender, address, emergencyContact } = req.body;
 
-    // Find user without patient association for now (to avoid database schema issues)
     const user = await User.findByPk(req.user.id);
-
     if (!user) {
       return res.status(404).json({
-        success: false,
-        error: 'User not found'
+        status: 'error',
+        message: 'User not found'
       });
     }
 
-    // Define allowed fields that exist in the database
-    const allowedFields = {
-      firstName: firstName,
-      lastName: lastName,
-      phone: phone,
-      gender: gender,
-      dateOfBirth: dateOfBirth,
-      address: address,
-      city: city,
-      state: state,
-      zipCode: zipCode
-    };
-
-    // Filter out undefined/null values and only update provided fields
-    const updateData = {};
-    Object.keys(allowedFields).forEach(key => {
-      if (allowedFields[key] !== undefined && allowedFields[key] !== null && allowedFields[key] !== '') {
-        updateData[key] = allowedFields[key];
-      }
+    await user.update({
+      firstName: firstName || user.firstName,
+      lastName: lastName || user.lastName,
+      phone: phone || user.phone,
+      specialty: specialty || user.specialty,
+      experience: experience || user.experience,
+      qualification: qualification || user.qualification,
+      dateOfBirth: dateOfBirth || user.dateOfBirth,
+      gender: gender || user.gender,
+      address: address || user.address,
+      emergencyContact: emergencyContact || user.emergencyContact
     });
 
-    // Update user with only the allowed fields
-    if (Object.keys(updateData).length > 0) {
-      await user.update(updateData);
-    }
-
-    // TODO: Patient-specific data update will be implemented once database schema is fixed
-    // For now, we only update the basic user information
-
-    // Fetch updated user data
     const updatedUser = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password'] }
     });
 
     res.json({
+      status: 'success',
+      data: { user: updatedUser }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+};
+
+const getUsersByRole = async (req, res) => {
+  try {
+    const { role } = req.query;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role parameter is required'
+      });
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: users } = await User.findAndCountAll({
+      where: { role },
+      attributes: { exclude: ['password', 'passwordResetToken', 'passwordResetExpires'] },
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
       success: true,
-      message: 'Profile updated successfully',
       data: {
-        user: updatedUser
+        users,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          itemsPerPage: parseInt(limit)
+        }
       }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Get users by role error:', error);
     res.status(500).json({
       success: false,
-      error: 'Error updating profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-// @desc    Change password
-// @route   PUT /api/auth/change-password
-// @access  Private
-const changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    const user = await User.findByPk(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    // Check current password
-    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Current password is incorrect'
-      });
-    }
-
-    // Update password
-    user.password = newPassword;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Password changed successfully'
-    });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error changing password'
-    });
-  }
-};
-
-// @desc    Forgot password
-// @route   POST /api/auth/forgot-password
-// @access  Public
-const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User with this email not found'
-      });
-    }
-
-    // Generate reset token
-    const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-      expiresIn: '1h'
-    });
-
-    // Save reset token to user
-    await user.update({
-      passwordResetToken: resetToken,
-      passwordResetExpires: new Date(Date.now() + 3600000) // 1 hour
-    });
-
-    // TODO: Send email with reset link
-    // For now, just return the token (in production, send via email)
-    res.json({
-      success: true,
-      message: 'Password reset email sent',
-      data: {
-        resetToken // Remove this in production
-      }
-    });
-  } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error processing forgot password request'
-    });
-  }
-};
-
-// @desc    Reset password
-// @route   POST /api/auth/reset-password
-// @access  Public
-const resetPassword = async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    const user = await User.findByPk(decoded.id);
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid reset token'
-      });
-    }
-
-    // Check if token is expired
-    if (user.passwordResetExpires < new Date()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Reset token has expired'
-      });
-    }
-
-    // Update password and clear reset token
-    user.password = newPassword;
-    user.passwordResetToken = null;
-    user.passwordResetExpires = null;
-    await user.save();
-
-    res.json({
-      success: true,
-      message: 'Password reset successfully'
-    });
-  } catch (error) {
-    console.error('Reset password error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error resetting password'
-    });
-  }
-};
-
-// @desc    Logout user
-// @route   POST /api/auth/logout
-// @access  Private
-const logout = async (req, res) => {
-  try {
-    // In a real application, you might want to blacklist the token
-    // For now, just return success
-    res.json({
-      success: true,
-      message: 'Logged out successfully'
-    });
-  } catch (error) {
-    console.error('Logout error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error logging out'
+      error: 'Error getting users by role'
     });
   }
 };
@@ -408,10 +228,7 @@ const logout = async (req, res) => {
 module.exports = {
   register,
   login,
-  getMe,
+  getProfile,
   updateProfile,
-  changePassword,
-  forgotPassword,
-  resetPassword,
-  logout
+  getUsersByRole
 };

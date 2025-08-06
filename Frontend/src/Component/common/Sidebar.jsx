@@ -164,6 +164,7 @@ const Sidebar = ({
               path: '/doctor/appointments',
               badge: '8',
               subItems: [
+                { name: 'Manage Appointments', path: '/doctor/appointments/manage', icon: '📋' },
                 { name: 'Today\'s Appointments', path: '/doctor/appointments/today', icon: '🗓️' },
                 { name: 'Upcoming', path: '/doctor/appointments/upcoming', icon: '⏰' },
                 { name: 'Completed', path: '/doctor/appointments/completed', icon: '✅' }
@@ -176,13 +177,7 @@ const Sidebar = ({
               path: '/doctor/patients',
               badge: null
             },
-            {
-              id: 'schedule',
-              name: 'Schedule',
-              icon: '🗓️',
-              path: '/doctor/schedule',
-              badge: null
-            },
+
             {
               id: 'prescriptions',
               name: 'Prescriptions',
@@ -195,7 +190,7 @@ const Sidebar = ({
               name: 'Reviews',
               icon: '⭐',
               path: '/doctor/reviews',
-              badge: 'new'
+              badge: null
             },
             {
               id: 'profile',

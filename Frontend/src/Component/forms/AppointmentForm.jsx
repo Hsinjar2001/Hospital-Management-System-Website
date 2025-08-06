@@ -72,13 +72,7 @@ const AppointmentForm = ({
     }
   }, [selectedDate, watchedValues.doctorId]);
 
-  // Handle department change
-  const handleDepartmentChange = (e) => {
-    const department = e.target.value;
-    setSelectedDepartment(department);
-    setValue('doctorId', ''); // Reset doctor selection
-    setValue('appointmentTime', ''); // Reset time selection
-  };
+
 
   // Handle date change
   const handleDateChange = (e) => {
@@ -96,9 +90,7 @@ const AppointmentForm = ({
       errors.patientName = 'Patient name is required';
     }
     
-    if (!data.departmentId) {
-      errors.departmentId = 'Department is required';
-    }
+
     
     if (!data.doctorId) {
       errors.doctorId = 'Doctor is required';
@@ -292,29 +284,7 @@ const AppointmentForm = ({
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Department */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Department <span className="text-red-500">*</span>
-              </label>
-              <select
-                {...register('departmentId', { required: 'Department is required' })}
-                onChange={handleDepartmentChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              >
-                <option value="">Select Department</option>
-                {defaultDepartments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.icon} {dept.name}
-                  </option>
-                ))}
-              </select>
-              {(errors.departmentId || formErrors.departmentId) && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.departmentId?.message || formErrors.departmentId}
-                </p>
-              )}
-            </div>
+
 
             {/* Doctor */}
             <div>
@@ -324,7 +294,7 @@ const AppointmentForm = ({
               <select
                 {...register('doctorId', { required: 'Doctor is required' })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                disabled={!selectedDepartment}
+
               >
                 <option value="">Select Doctor</option>
                 {filteredDoctors.map((doctor) => (

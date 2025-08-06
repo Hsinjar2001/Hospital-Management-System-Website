@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import StatCard from '../../Component/common/StatCard';
-import { dashboardAPI, patientsAPI, doctorsAPI, appointmentsAPI } from '../../services/api';
+import { dashboardAPI, patientsAPI, doctorsAPI, appointmentsAPI, prescriptionsAPI, invoicesAPI } from '../../services/api';
 
 const AdminDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
@@ -92,6 +92,28 @@ const AdminDashboard = () => {
         </svg>
       ),
       color: 'bg-orange-100'
+    },
+    {
+      title: 'Total Prescriptions',
+      value: loading ? '...' : (dashboardData.stats?.totalPrescriptions?.toLocaleString() || '0'),
+      change: dashboardData.stats?.prescriptionsChange || 0,
+      icon: (
+        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      color: 'bg-indigo-100'
+    },
+    {
+      title: 'Pending Payments',
+      value: loading ? '...' : (dashboardData.stats?.pendingPayments ? `$${dashboardData.stats.pendingPayments.toLocaleString()}` : '$0'),
+      change: dashboardData.stats?.paymentsChange || 0,
+      icon: (
+        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      ),
+      color: 'bg-red-100'
     }
   ];
 
@@ -132,14 +154,14 @@ const AdminDashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
         {stats.map((stat, index) => (
           <StatCard key={index} {...stat} />
         ))}
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* System Overview */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -179,6 +201,30 @@ const AdminDashboard = () => {
                 <span className="ml-3 text-sm font-medium text-gray-700">Total Appointments</span>
               </div>
               <span className="text-sm font-bold text-purple-600">{dashboardData.stats?.totalAppointments || 0}</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="ml-3 text-sm font-medium text-gray-700">Active Prescriptions</span>
+              </div>
+              <span className="text-sm font-bold text-indigo-600">{dashboardData.stats?.activePrescriptions || 0}</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <span className="ml-3 text-sm font-medium text-gray-700">Pending Payments</span>
+              </div>
+              <span className="text-sm font-bold text-red-600">${dashboardData.stats?.pendingPayments?.toLocaleString() || '0'}</span>
             </div>
           </div>
         </div>
@@ -323,6 +369,120 @@ const AdminDashboard = () => {
               Search
             </button>
           </form>
+        </div>
+      </div>
+
+      {/* Additional Management Sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        
+        {/* Prescription Management */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Prescriptions</h2>
+            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              View All
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-2">Loading prescriptions...</p>
+              </div>
+            ) : dashboardData.recentPrescriptions?.length > 0 ? (
+              dashboardData.recentPrescriptions.map((prescription) => (
+                <div key={prescription.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-gray-900">{prescription.id}</p>
+                    <p className="text-sm text-gray-600">{prescription.patient}</p>
+                    <p className="text-sm text-gray-500">Dr. {prescription.doctor}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      prescription.status === 'Active' ? 'bg-green-100 text-green-800' :
+                      prescription.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {prescription.status}
+                    </span>
+                    <p className="text-sm text-gray-600 mt-1">${prescription.cost}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500">No recent prescriptions</p>
+                <p className="text-sm text-gray-400 mt-1">Prescriptions will appear here once created</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Payment Tracking */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Payment Overview</h2>
+            <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+              View All
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Paid Today</p>
+                    <p className="text-lg font-bold text-green-600">${dashboardData.stats?.dailyRevenue?.toLocaleString() || '0'}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-900">Pending</p>
+                    <p className="text-lg font-bold text-yellow-600">${dashboardData.stats?.pendingPayments?.toLocaleString() || '0'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-gray-900">Recent Transactions</h3>
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+              ) : dashboardData.recentPayments?.length > 0 ? (
+                dashboardData.recentPayments.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{payment.patient}</p>
+                      <p className="text-xs text-gray-500">{payment.date}</p>
+                    </div>
+                    <span className="text-sm font-medium text-green-600">+${payment.amount}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 py-4">No recent transactions</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
 
 const Prescription = sequelize.define('Prescription', {
   id: {
@@ -9,17 +9,14 @@ const Prescription = sequelize.define('Prescription', {
   },
   prescriptionId: {
     type: DataTypes.STRING,
-    allowNull: false,
     unique: true,
-    validate: {
-      notEmpty: true
-    }
+    allowNull: false
   },
   patientId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'patients',
+      model: 'users',
       key: 'id'
     }
   },
@@ -27,7 +24,7 @@ const Prescription = sequelize.define('Prescription', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'doctors',
+      model: 'users',
       key: 'id'
     }
   },
@@ -41,7 +38,7 @@ const Prescription = sequelize.define('Prescription', {
   },
   diagnosis: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: false
   },
   symptoms: {
     type: DataTypes.TEXT,
@@ -49,89 +46,54 @@ const Prescription = sequelize.define('Prescription', {
   },
   medications: {
     type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    allowNull: false
   },
   dosage: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.STRING,
+    allowNull: true
   },
   instructions: {
     type: DataTypes.TEXT,
     allowNull: true
   },
   duration: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    defaultValue: 7, // days
-    validate: {
-      min: 1,
-      max: 365
-    }
+    type: DataTypes.STRING,
+    allowNull: true
   },
   frequency: {
     type: DataTypes.STRING,
     allowNull: true
   },
   quantity: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.INTEGER,
+    allowNull: true
   },
   refills: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    defaultValue: 0,
-    validate: {
-      min: 0,
-      max: 10
-    }
-  },
-  refillDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
-  status: {
-    type: DataTypes.ENUM('active', 'completed', 'discontinued', 'expired'),
-    allowNull: false,
-    defaultValue: 'active'
-  },
-  prescribedDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: false,
-    defaultValue: DataTypes.NOW
-  },
-  expiryDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
+    defaultValue: 0
   },
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
   },
   allergies: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   contraindications: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   sideEffects: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   labTests: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   followUpDate: {
-    type: DataTypes.DATEONLY,
+    type: DataTypes.DATE,
     allowNull: true
   },
   followUpNotes: {
@@ -155,115 +117,48 @@ const Prescription = sequelize.define('Prescription', {
     allowNull: true
   },
   dietRestrictions: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   lifestyleChanges: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   alternativeMedications: {
-    type: DataTypes.JSON,
-    allowNull: true,
-    defaultValue: []
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   cost: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00
+    allowNull: true
   },
   insuranceCoverage: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: true,
-    defaultValue: 0.00,
-    validate: {
-      min: 0,
-      max: 100
-    }
-  },
-  patientCost: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-    defaultValue: 0.00
+    allowNull: true
   },
-  dispensedAt: {
+  status: {
+    type: DataTypes.ENUM('active', 'completed', 'cancelled', 'expired', 'purchased'),
+    defaultValue: 'active'
+  },
+  prescribedDate: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
+  },
+  purchaseDate: {
     type: DataTypes.DATE,
     allowNull: true
   },
-  dispensedBy: {
-    type: DataTypes.STRING,
-    allowNull: true
+  createdAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   },
-  pharmacyNotes: {
-    type: DataTypes.TEXT,
-    allowNull: true
+  updatedAt: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
   tableName: 'prescriptions',
-  timestamps: true,
-  indexes: [
-    {
-      fields: ['patientId', 'prescribedDate']
-    },
-    {
-      fields: ['doctorId', 'prescribedDate']
-    },
-    {
-      fields: ['status']
-    },
-    {
-      fields: ['expiryDate']
-    }
-  ]
+  timestamps: true
 });
-
-// Instance method to check if prescription is active
-Prescription.prototype.isActive = function() {
-  return this.status === 'active';
-};
-
-// Instance method to check if prescription is expired
-Prescription.prototype.isExpired = function() {
-  if (!this.expiryDate) return false;
-  const today = new Date();
-  const expiryDate = new Date(this.expiryDate);
-  return expiryDate < today;
-};
-
-// Instance method to get total cost
-Prescription.prototype.getTotalCost = function() {
-  return parseFloat(this.cost || 0);
-};
-
-// Instance method to get insurance amount
-Prescription.prototype.getInsuranceAmount = function() {
-  const total = this.getTotalCost();
-  const coverage = parseFloat(this.insuranceCoverage || 0);
-  return (total * coverage) / 100;
-};
-
-// Instance method to get patient cost
-Prescription.prototype.getPatientCost = function() {
-  const total = this.getTotalCost();
-  const insuranceAmount = this.getInsuranceAmount();
-  return total - insuranceAmount;
-};
-
-// Instance method to check if prescription needs refill
-Prescription.prototype.needsRefill = function() {
-  if (this.refills <= 0) return false;
-  if (!this.refillDate) return false;
-  
-  const today = new Date();
-  const refillDate = new Date(this.refillDate);
-  return refillDate <= today;
-};
-
-// Instance method to get medication count
-Prescription.prototype.getMedicationCount = function() {
-  return this.medications ? this.medications.length : 0;
-};
 
 module.exports = Prescription;

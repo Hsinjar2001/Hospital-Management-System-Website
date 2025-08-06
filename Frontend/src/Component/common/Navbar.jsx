@@ -116,7 +116,6 @@ const Navbar = () => {
           { name: 'Dashboard', path: '/doctor/dashboard', icon: '📊' },
           { name: 'Appointments', path: '/doctor/appointments', icon: '📅' },
           { name: 'Patients', path: '/doctor/patients', icon: '👥' },
-          { name: 'Schedule', path: '/doctor/schedule', icon: '🗓️' },
           { name: 'Prescriptions', path: '/doctor/prescriptions', icon: '💊' }
         ];
       case 'patient':

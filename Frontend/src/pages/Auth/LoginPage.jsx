@@ -41,7 +41,7 @@ const LoginPage = () => {
       const result = await response.json();
       console.log('Backend login response:', result);
 
-      if (response.ok && result.success && result.data && result.data.user) {
+      if (response.ok && result.status === 'success' && result.data && result.data.user) {
         // Store user data and token
         const storage = rememberMe ? localStorage : sessionStorage;
         storage.setItem('hospitalUser', JSON.stringify(result.data.user));
@@ -55,7 +55,7 @@ const LoginPage = () => {
         window.location.href = redirectPath;
 
       } else {
-        alert(`❌ Login failed: ${result.error || result.message || 'Invalid email or password.'}`);
+        alert(`❌ Login failed: ${result.message || 'Invalid email or password.'}`);
       }
     } catch (error) {
       console.error('Login error:', error);

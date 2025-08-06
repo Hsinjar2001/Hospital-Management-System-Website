@@ -88,29 +88,37 @@ import AdminDashboard from './pages/Admindashboard/AdminDashboard';
 import AdminProfileSetting from './pages/Admindashboard/AdminProfileSetting';
 import AppointmentsPage from './pages/Admindashboard/AppointmentsPage';
 import DepartmentPage from './pages/Admindashboard/DepartmentPage';
+import DoctorsListPage from './pages/Admindashboard/DoctorsListPage';
 import PatientsDetailsPage from './pages/Admindashboard/PatientsDetailsPage';
 import PatientsListPage from './pages/Admindashboard/PatientsListPage';
 import RolesAndPremissionPage from './pages/Admindashboard/RolesAndPremissionPage';
 
 // Doctor Dashboard Pages
 import DoctorAppointmentPage from './pages/Doctordashboard/AppointmentPage';
+import DoctorAppointmentManagementPage from './pages/Doctordashboard/DoctorAppointmentManagementPage';
 import Doctordashboard from './pages/Doctordashboard/Doctordashboard';
-import DoctorSchedulePage from './pages/Doctordashboard/DoctorSchedulePage';
+import DoctorProfilePage from './pages/Doctordashboard/DoctorProfilePage';
+
+import PatientsPage from './pages/Doctordashboard/PatientsPage';
 import PrescriptionsPage from './pages/Doctordashboard/PrescriptionsPage';
 import ReviewsPage from './pages/Doctordashboard/ReviewsPage';
 
 // Patient Dashboard Pages
 import PatientAppointmentPage from './pages/Patientdashboard/AppointmentPage';
 import InvoicePage from './pages/Patientdashboard/InvoicePage';
+import PatientInvoicesPage from './pages/Patientdashboard/PatientInvoicesPage';
 import PatientDashboard from './pages/Patientdashboard/PatientDashboard';
 import PatientsPrescriptionPage from './pages/Patientdashboard/PatientsPrescriptionPage';
 import PatientSettingPage from './pages/Patientdashboard/SettingPage';
+import DoctorsPage from './pages/Patient/DoctorsPage';
 
 // Home Page
 import HomePage from './pages/Home/Home_page';
 
 // Error Page
 import ErrorPage404 from './pages/shared/ErrorPage404';
+
+
 
 // Unauthorized Page Component
 const UnauthorizedPage = () => (
@@ -198,12 +206,12 @@ const LayoutWrapper = ({ children, role }) => {
   return getLayout();
 };
 
-function App() {
+function AppContent() {
+  const { user, isAuthenticated } = useAuth();
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="App">
-          <Routes>
+    <div className="App">
+      <Routes>
             {/* Public Routes */}
             <Route 
               path="/" 
@@ -266,7 +274,7 @@ function App() {
                     
                     {/* Doctor Management */}
                     <Route path="doctors" element={<Navigate to="/admin/doctors/list" replace />} />
-                    <Route path="doctors/list" element={<AdminDashboard />} />
+                    <Route path="doctors/list" element={<DoctorsListPage />} />
                     <Route path="doctors/add" element={<AddDoctorPage />} />
                     <Route path="doctors/edit/:id" element={<AddDoctorPage />} />
                     <Route path="doctors/:id" element={<AdminDashboard />} />
@@ -324,17 +332,11 @@ function App() {
                     <Route path="dashboard" element={<Doctordashboard />} />
                     
                     {/* Appointments */}
-                    <Route path="appointments" element={<Navigate to="/doctor/appointments/list" replace />} />
-                    <Route path="appointments/list" element={<DoctorAppointmentPage />} />
-                    <Route path="appointments/add" element={<DoctorAppointmentPage />} />
-                    <Route path="appointments/:id" element={<DoctorAppointmentPage />} />
-                    
-                    {/* Schedule */}
-                    <Route path="schedule" element={<DoctorSchedulePage />} />
-                    <Route path="schedule/edit" element={<DoctorSchedulePage />} />
+                    <Route path="appointments" element={<Navigate to="/doctor/appointments/manage" replace />} />
+                    <Route path="appointments/manage" element={<DoctorAppointmentManagementPage />} />
                     
                     {/* Patients */}
-                    <Route path="patients" element={<PatientsListPage />} />
+                    <Route path="patients" element={<PatientsPage />} />
                     <Route path="patients/:id" element={<PatientsDetailsPage />} />
                     
                     {/* Prescriptions */}
@@ -353,9 +355,9 @@ function App() {
                     <Route path="reports/appointments" element={<Doctordashboard />} />
                     
                     {/* Doctor Profile */}
-                    <Route path="profile" element={<AdminProfileSetting />} />
-                    <Route path="profile/edit" element={<AdminProfileSetting />} />
-                    <Route path="settings" element={<AdminProfileSetting />} />
+                    <Route path="profile" element={<DoctorProfilePage />} />
+                    <Route path="profile/edit" element={<DoctorProfilePage />} />
+                    <Route path="settings" element={<DoctorProfilePage />} />
                     
                     {/* Password Management */}
                     <Route path="change-password" element={<ChangePasswordPage />} />
@@ -371,6 +373,9 @@ function App() {
                   <Routes>
                     <Route index element={<Navigate to="/patient/dashboard" replace />} />
                     <Route path="dashboard" element={<PatientDashboard />} />
+                    
+                    {/* Doctors */}
+                    <Route path="doctors" element={<DoctorsPage />} />
                     
                     {/* Appointments */}
                     <Route path="appointments" element={<Navigate to="/patient/appointments/list" replace />} />
@@ -389,7 +394,7 @@ function App() {
                     
                     {/* Invoices & Billing */}
                     <Route path="invoices" element={<Navigate to="/patient/invoices/list" replace />} />
-                    <Route path="invoices/list" element={<InvoicePage />} />
+                    <Route path="invoices/list" element={<PatientInvoicesPage />} />
                     <Route path="invoices/:id" element={<InvoicePage />} />
                     <Route path="billing" element={<InvoicePage />} />
                     <Route path="payment-history" element={<InvoicePage />} />
@@ -480,8 +485,16 @@ function App() {
             
             {/* Catch all route */}
             <Route path="*" element={<ErrorPage404 />} />
-          </Routes>
-        </div>
+      </Routes>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <AppContent />
       </BrowserRouter>
     </AuthProvider>
   );

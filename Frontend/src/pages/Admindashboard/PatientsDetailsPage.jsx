@@ -206,27 +206,27 @@ const PatientsDetailsPage = () => {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-6">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                {patient.profileImage ? (
+                {patient.user?.profile_image ? (
                   <img 
-                    src={patient.profileImage} 
-                    alt={patient.fullName}
+                    src={patient.user?.profile_image} 
+                    alt={patient.full_name || `${patient.user?.first_name || ''} ${patient.user?.last_name || ''}`.trim()}
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
                   <span className="text-white text-2xl font-bold">
-                    {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
+                    {patient.user?.first_name?.charAt(0) || ''}{patient.user?.last_name?.charAt(0) || ''}
                   </span>
                 )}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{patient.fullName}</h2>
-                <p className="text-gray-600">Patient ID: {patient.id}</p>
+                <h2 className="text-2xl font-bold text-gray-900">{patient.full_name || `${patient.user?.first_name || ''} ${patient.user?.last_name || ''}`.trim()}</h2>
+                <p className="text-gray-600">Patient ID: {patient.patient_id || `PAT-${patient.id}`}</p>
                 <div className="flex items-center space-x-4 mt-2">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(patient.status)}`}>
-                    {patient.status}
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(patient.status || 'active')}`}>
+                    {patient.status || 'Active'}
                   </span>
                   <span className="text-sm text-gray-500">
-                    {patient.age} years old • {patient.gender}
+                    {patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : patient.user?.date_of_birth ? new Date().getFullYear() - new Date(patient.user.date_of_birth).getFullYear() : 'N/A'} years old • {patient.gender || patient.user?.gender || 'N/A'}
                   </span>
                   <span className="text-sm text-gray-500">
                     Blood Group: {patient.bloodGroup}
@@ -288,35 +288,35 @@ const PatientsDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <p className="text-sm text-gray-900">{patient.fullName}</p>
+                    <p className="text-sm text-gray-900">{patient.full_name || `${patient.user?.first_name || ''} ${patient.user?.last_name || ''}`.trim()}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                    <p className="text-sm text-gray-900">{new Date(patient.dateOfBirth).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-900">{patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString() : patient.user?.date_of_birth ? new Date(patient.user.date_of_birth).toLocaleDateString() : 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Age</label>
-                    <p className="text-sm text-gray-900">{patient.age} years</p>
+                    <p className="text-sm text-gray-900">{patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : patient.user?.date_of_birth ? new Date().getFullYear() - new Date(patient.user.date_of_birth).getFullYear() : 'N/A'} years</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Gender</label>
-                    <p className="text-sm text-gray-900">{patient.gender}</p>
+                    <p className="text-sm text-gray-900">{patient.gender || patient.user?.gender || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Blood Group</label>
-                    <p className="text-sm text-gray-900">{patient.bloodGroup}</p>
+                    <p className="text-sm text-gray-900">{patient.blood_group || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Marital Status</label>
-                    <p className="text-sm text-gray-900">{patient.maritalStatus}</p>
+                    <p className="text-sm text-gray-900">{patient.maritalStatus || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
-                    <p className="text-sm text-gray-900">{patient.phone}</p>
+                    <p className="text-sm text-gray-900">{patient.phone || patient.user?.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <p className="text-sm text-gray-900">{patient.email}</p>
+                    <p className="text-sm text-gray-900">{patient.user?.email || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -327,23 +327,23 @@ const PatientsDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700">Address</label>
-                    <p className="text-sm text-gray-900">{patient.address}</p>
+                    <p className="text-sm text-gray-900">{patient.address || patient.user?.address || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">City</label>
-                    <p className="text-sm text-gray-900">{patient.city}</p>
+                    <p className="text-sm text-gray-900">{patient.city || patient.user?.city || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">State</label>
-                    <p className="text-sm text-gray-900">{patient.state}</p>
+                    <p className="text-sm text-gray-900">{patient.state || patient.user?.state || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">ZIP Code</label>
-                    <p className="text-sm text-gray-900">{patient.zipCode}</p>
+                    <p className="text-sm text-gray-900">{patient.zipCode || patient.user?.zip_code || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Country</label>
-                    <p className="text-sm text-gray-900">{patient.country}</p>
+                    <p className="text-sm text-gray-900">{patient.country || 'N/A'}</p>
                   </div>
                 </div>
               </div>

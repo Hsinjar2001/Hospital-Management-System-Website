@@ -1,5 +1,6 @@
 // pages/Patientdashboard/PatientPrescriptionPage.jsx
 import React, { useState, useEffect } from 'react';
+import { prescriptionsAPI, invoicesAPI } from '../../services/api';
 
 const PatientPrescriptionPage = () => {
   const [prescriptions, setPrescriptions] = useState([]);
@@ -8,126 +9,59 @@ const PatientPrescriptionPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [billingAddress, setBillingAddress] = useState('');
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [insuranceCoverage, setInsuranceCoverage] = useState(0);
 
-  // Sample prescriptions data[5]
-  const samplePrescriptions = [
-    {
-      id: 'RX-2025-001',
-      prescribedBy: 'Dr. Sarah Johnson',
-      department: 'Cardiology',
-      date: '2025-07-15',
-      status: 'active',
-      medications: [
-        {
-          name: 'Lisinopril',
-          dosage: '10mg',
-          frequency: 'Once daily',
-          duration: '30 days',
-          instructions: 'Take with food in the morning',
-          quantity: 30,
-          refills: 2,
-          refillsUsed: 0
-        },
-        {
-          name: 'Metformin',
-          dosage: '500mg',
-          frequency: 'Twice daily',
-          duration: '30 days',
-          instructions: 'Take with meals',
-          quantity: 60,
-          refills: 2,
-          refillsUsed: 0
-        }
-      ],
-      diagnosis: 'Hypertension, Type 2 Diabetes',
-      notes: 'Monitor blood pressure and blood sugar levels regularly. Return for follow-up in 4 weeks.',
-      pharmacyInstructions: 'Patient counseled on medication administration and side effects.',
-      expiryDate: '2025-08-15',
-      pharmacy: 'Central Pharmacy'
-    },
-    {
-      id: 'RX-2025-002',
-      prescribedBy: 'Dr. Emily Davis',
-      department: 'Dermatology',
-      date: '2025-07-18',
-      status: 'pending',
-      medications: [
-        {
-          name: 'Hydrocortisone Cream',
-          dosage: '1%',
-          frequency: 'Twice daily',
-          duration: '14 days',
-          instructions: 'Apply thin layer to affected area',
-          quantity: 1,
-          refills: 1,
-          refillsUsed: 0
-        }
-      ],
-      diagnosis: 'Eczema',
-      notes: 'Apply as needed for itching and inflammation. Avoid face and genital areas.',
-      pharmacyInstructions: 'Topical use only. Patient advised on proper application.',
-      expiryDate: '2025-08-18',
-      pharmacy: 'Main Street Pharmacy'
-    },
-    {
-      id: 'RX-2025-003',
-      prescribedBy: 'Dr. Michael Wilson',
-      department: 'General Medicine',
-      date: '2025-07-10',
-      status: 'completed',
-      medications: [
-        {
-          name: 'Amoxicillin',
-          dosage: '500mg',
-          frequency: 'Three times daily',
-          duration: '10 days',
-          instructions: 'Complete full course even if feeling better',
-          quantity: 30,
-          refills: 0,
-          refillsUsed: 0
-        }
-      ],
-      diagnosis: 'Bacterial infection',
-      notes: 'Complete antibiotic course. Return if symptoms persist after completion.',
-      pharmacyInstructions: 'Patient counseled on completing full antibiotic course.',
-      expiryDate: '2025-07-20',
-      pharmacy: 'Health Plus Pharmacy'
-    },
-    {
-      id: 'RX-2025-004',
-      prescribedBy: 'Dr. James Miller',
-      department: 'Orthopedics',
-      date: '2025-07-05',
-      status: 'expired',
-      medications: [
-        {
-          name: 'Ibuprofen',
-          dosage: '400mg',
-          frequency: 'Three times daily as needed',
-          duration: '7 days',
-          instructions: 'Take with food. Do not exceed 1200mg per day',
-          quantity: 21,
-          refills: 1,
-          refillsUsed: 1
-        }
-      ],
-      diagnosis: 'Post-operative pain',
-      notes: 'For pain management after knee surgery. Use ice packs and elevate leg.',
-      pharmacyInstructions: 'Patient advised on maximum daily dose and food requirements.',
-      expiryDate: '2025-07-12',
-      pharmacy: 'MediCare Pharmacy'
-    }
-  ];
+
 
   useEffect(() => {
     const loadPrescriptions = async () => {
       setLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPrescriptions(samplePrescriptions);
-        setFilteredPrescriptions(samplePrescriptions);
+        const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          const userId = userData.id;
+          
+          const response = await prescriptionsAPI.getByUser(userId);
+          if (response.success || response.status === 'success') {
+            const prescriptionsData = response.data?.prescriptions || response.data || [];
+            
+            const formattedPrescriptions = prescriptionsData.map(prescription => ({
+              id: prescription.id,
+              prescribedBy: `Dr. ${prescription.doctor?.user?.firstName || ''} ${prescription.doctor?.user?.lastName || ''}`.trim() || 'Unknown Doctor',
+              department: prescription.doctor?.department?.name || 'General Medicine',
+              date: prescription.createdAt || prescription.date,
+              status: prescription.status || 'active',
+              medications: Array.isArray(prescription.medications) ? prescription.medications : (prescription.medications ? JSON.parse(prescription.medications) : []),
+              diagnosis: prescription.diagnosis || 'Not specified',
+              notes: prescription.notes || '',
+              pharmacyInstructions: prescription.pharmacyInstructions || '',
+              expiryDate: prescription.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              pharmacy: prescription.pharmacy || 'Default Pharmacy',
+              cost: prescription.cost || 0,
+              isPurchased: prescription.isPurchased || false
+            }));
+            
+            setPrescriptions(formattedPrescriptions);
+            setFilteredPrescriptions(formattedPrescriptions);
+          } else {
+            console.error('Failed to load prescriptions:', response.error || response.message);
+            setPrescriptions([]);
+            setFilteredPrescriptions([]);
+          }
+        } else {
+          console.error('No user data found in storage');
+          setPrescriptions([]);
+          setFilteredPrescriptions([]);
+        }
       } catch (error) {
         console.error('Error loading prescriptions:', error);
+        setPrescriptions([]);
+        setFilteredPrescriptions([]);
       } finally {
         setLoading(false);
       }
@@ -150,7 +84,75 @@ const PatientPrescriptionPage = () => {
     alert(`✅ Refill request submitted for ${medicationName}. You will be notified when ready for pickup.`);
   };
 
+  const handlePurchase = (prescription) => {
+    setSelectedPrescription(prescription);
+    setShowPurchaseModal(true);
+  };
+
+  const processPurchase = async () => {
+    if (!selectedPrescription) return;
+    
+    setPurchaseLoading(true);
+    try {
+      const response = await prescriptionsAPI.purchase(selectedPrescription.id);
+      
+      if (response.success) {
+        // Update prescription status locally
+        setPrescriptions(prev => 
+          prev.map(p => 
+            p.id === selectedPrescription.id 
+              ? { ...p, isPurchased: true, status: 'purchased' }
+              : p
+          )
+        );
+        
+        setFilteredPrescriptions(prev => 
+          prev.map(p => 
+            p.id === selectedPrescription.id 
+              ? { ...p, isPurchased: true, status: 'purchased' }
+              : p
+          )
+        );
+        
+        setShowPurchaseModal(false);
+        setSelectedPrescription(null);
+        setBillingAddress('');
+        setShippingAddress('');
+        setInsuranceCoverage(0);
+        
+        alert('Prescription purchased successfully! Invoice created.');
+      } else {
+        alert(response.message || 'Failed to purchase prescription.');
+      }
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      if (error.message.includes('already purchased')) {
+        alert('This prescription has already been purchased. If this is an error, please contact support or try resetting the prescription status.');
+      } else {
+        alert('Failed to purchase prescription. Please try again.');
+      }
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
+  const handleResetPrescription = async (prescriptionId) => {
+    try {
+      const response = await invoicesAPI.resetPrescriptionStatus(prescriptionId);
+      if (response.success) {
+        alert('Prescription status reset successfully!');
+        loadPrescriptions();
+      } else {
+        alert(response.message || 'Failed to reset prescription status.');
+      }
+    } catch (error) {
+      console.error('Reset failed:', error);
+      alert('Failed to reset prescription status. Please try again.');
+    }
+  };
+
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -339,12 +341,14 @@ const PatientPrescriptionPage = () => {
                           Refills: {medication.refills - medication.refillsUsed} of {medication.refills} remaining
                         </div>
                         {prescription.status === 'active' && (medication.refills - medication.refillsUsed) > 0 && (
-                          <button
-                            onClick={() => handleRefillRequest(prescription.id, medication.name)}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                          >
-                            Request Refill
-                          </button>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleRefillRequest(prescription.id, medication.name)}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              Request Refill
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -371,22 +375,55 @@ const PatientPrescriptionPage = () => {
               )}
 
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setSelectedPrescription(prescription);
-                    setShowDetailsModal(true);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  View Full Details
-                </button>
-                <div className="flex space-x-3">
-                  <button className="text-gray-600 hover:text-gray-800 text-sm">
-                    Download PDF
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => {
+                      setSelectedPrescription(prescription);
+                      setShowDetailsModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    View Full Details
                   </button>
-                  <button className="text-gray-600 hover:text-gray-800 text-sm">
-                    Print
-                  </button>
+                  <div className="flex space-x-3">
+                    <button className="text-gray-600 hover:text-gray-800 text-sm">
+                      Download PDF
+                    </button>
+                    <button className="text-gray-600 hover:text-gray-800 text-sm">
+                      Print
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <span className="text-lg font-semibold text-gray-900">
+                      Total: ${prescription.cost}
+                    </span>
+                    {prescription.isPurchased && (
+                      <div className="text-sm text-green-600 font-medium">
+                        ✓ Purchased
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex space-x-2">
+                    {!prescription.isPurchased && (
+                      <button
+                        onClick={() => handlePurchase(prescription)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium"
+                      >
+                        Purchase
+                      </button>
+                    )}
+                    {prescription.status === 'purchased' && (
+                      <button
+                        onClick={() => handleResetPrescription(prescription.id)}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg font-medium text-sm"
+                        title="Reset prescription status for testing"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -519,6 +556,132 @@ const PatientPrescriptionPage = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Modal */}
+      {showPurchaseModal && selectedPrescription && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Purchase Prescription</h3>
+                <button
+                  onClick={() => {
+                    setShowPurchaseModal(false);
+                    setSelectedPrescription(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Prescription Summary */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 mb-2">{selectedPrescription.id}</h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {selectedPrescription.medications.map((med, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span>{med.name} ({med.dosage})</span>
+                        <span>${med.cost}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-blue-200 mt-2 pt-2">
+                    <div className="flex justify-between font-medium">
+                      <span>Total:</span>
+                      <span>${selectedPrescription.cost}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Billing Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Billing Address
+                  </label>
+                  <textarea
+                    value={billingAddress}
+                    onChange={(e) => setBillingAddress(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your billing address..."
+                  />
+                </div>
+
+                {/* Shipping Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Shipping Address
+                  </label>
+                  <textarea
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your shipping address..."
+                  />
+                </div>
+
+                {/* Insurance Coverage */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Insurance Coverage (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={insuranceCoverage}
+                    onChange={(e) => setInsuranceCoverage(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter insurance coverage percentage"
+                  />
+                </div>
+
+                {/* Final Cost */}
+                {insuranceCoverage > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex justify-between text-sm">
+                      <span>Original Cost:</span>
+                      <span>${selectedPrescription.cost}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>Insurance Coverage ({insuranceCoverage}%):</span>
+                      <span>-${(selectedPrescription.cost * insuranceCoverage / 100).toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-green-200 mt-2 pt-2 flex justify-between font-medium">
+                      <span>Final Cost:</span>
+                      <span>${(selectedPrescription.cost * (1 - insuranceCoverage / 100)).toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+                <button
+                  onClick={() => {
+                    setShowPurchaseModal(false);
+                    setSelectedPrescription(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={processPurchase}
+                  disabled={purchaseLoading || !billingAddress || !shippingAddress}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {purchaseLoading ? 'Processing...' : 'Purchase'}
                 </button>
               </div>
             </div>

@@ -15,7 +15,7 @@ const AppointmentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
-  const [departmentFilter, setDepartmentFilter] = useState('all');
+
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
 
@@ -168,6 +168,7 @@ const AppointmentsPage = () => {
 
   // Get status color
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
       case 'scheduled': return 'bg-blue-100 text-blue-800';
       case 'confirmed': return 'bg-green-100 text-green-800';
@@ -318,21 +319,7 @@ const AppointmentsPage = () => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Departments</option>
-              <option value="Cardiology">Cardiology</option>
-              <option value="Orthopedics">Orthopedics</option>
-              <option value="Pediatrics">Pediatrics</option>
-              <option value="Dermatology">Dermatology</option>
-              <option value="Neurology">Neurology</option>
-            </select>
-          </div>
+
 
           <div className="flex items-end">
             <button
@@ -340,7 +327,6 @@ const AppointmentsPage = () => {
                 setSearchTerm('');
                 setStatusFilter('all');
                 setDateFilter('all');
-                setDepartmentFilter('all');
               }}
               className="w-full px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
@@ -537,25 +523,7 @@ const AppointmentsPage = () => {
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Department <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      {...register('department', { required: 'Department is required' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select Department</option>
-                      <option value="Cardiology">Cardiology</option>
-                      <option value="Orthopedics">Orthopedics</option>
-                      <option value="Pediatrics">Pediatrics</option>
-                      <option value="Dermatology">Dermatology</option>
-                      <option value="Neurology">Neurology</option>
-                    </select>
-                    {errors.department && (
-                      <p className="text-red-500 text-sm mt-1">{errors.department.message}</p>
-                    )}
-                  </div>
+
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

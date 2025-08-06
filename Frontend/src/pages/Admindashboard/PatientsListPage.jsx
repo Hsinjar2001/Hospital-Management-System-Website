@@ -25,8 +25,10 @@ const PatientsListPage = () => {
       try {
         const response = await patientsAPI.getAll();
         if (response.success && response.data) {
-          setPatients(response.data.patients || []);
-          setFilteredPatients(response.data.patients || []);
+          // API returns users array, not patients array
+          const patientsData = response.data.users || [];
+          setPatients(patientsData);
+          setFilteredPatients(patientsData);
         } else {
           console.error('Failed to load patients:', response.error);
           setPatients([]);
@@ -44,51 +46,31 @@ const PatientsListPage = () => {
     loadPatients();
   }, []);
 
-  // Load patients
-  useEffect(() => {
-    const loadPatients = async () => {
-      setLoading(true);
-      try {
-        // Fetch real patients from API
-        const response = await patientsAPI.getAll();
-        const patientsData = response.data?.patients || [];
-        setPatients(patientsData);
-        setFilteredPatients(patientsData);
-      } catch (error) {
-        console.error('Error loading patients:', error);
-        // Set empty array on error
-        setPatients([]);
-        setFilteredPatients([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPatients();
-  }, []);
-
   // Filter and sort patients
   useEffect(() => {
     let filtered = patients;
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(patient => 
-        patient.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        patient.phone.includes(searchTerm) ||
-        patient.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(patient => {
+        const fullName = `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+        return (
+          fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (patient.email && patient.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (patient.phone && patient.phone.includes(searchTerm)) ||
+          (`PAT-${patient.id}`.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      });
     }
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(patient => patient.status.toLowerCase() === statusFilter);
+      filtered = filtered.filter(patient => (patient.isActive ? 'active' : 'inactive').toLowerCase() === statusFilter);
     }
 
     // Gender filter
     if (genderFilter !== 'all') {
-      filtered = filtered.filter(patient => patient.gender.toLowerCase() === genderFilter);
+      filtered = filtered.filter(patient => (patient.gender || '').toLowerCase() === genderFilter);
     }
 
     // Department filter
@@ -99,7 +81,7 @@ const PatientsListPage = () => {
     // Age range filter
     if (ageRangeFilter !== 'all') {
       filtered = filtered.filter(patient => {
-        const age = patient.age;
+        const age = patient.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : 0;
         switch (ageRangeFilter) {
           case 'child': return age < 18;
           case 'adult': return age >= 18 && age < 65;
@@ -115,24 +97,24 @@ const PatientsListPage = () => {
       
       switch (sortBy) {
         case 'name':
-          aValue = a.fullName.toLowerCase();
-          bValue = b.fullName.toLowerCase();
+          aValue = `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
+          bValue = `${b.firstName || ''} ${b.lastName || ''}`.trim().toLowerCase();
           break;
         case 'age':
-          aValue = a.age;
-          bValue = b.age;
+          aValue = a.dateOfBirth ? new Date().getFullYear() - new Date(a.dateOfBirth).getFullYear() : 0;
+          bValue = b.dateOfBirth ? new Date().getFullYear() - new Date(b.dateOfBirth).getFullYear() : 0;
           break;
         case 'lastVisit':
-          aValue = new Date(a.lastVisit);
-          bValue = new Date(b.lastVisit);
+          aValue = new Date(a.updatedAt);
+          bValue = new Date(b.updatedAt);
           break;
         case 'registrationDate':
-          aValue = new Date(a.registrationDate);
-          bValue = new Date(b.registrationDate);
+          aValue = new Date(a.createdAt);
+          bValue = new Date(b.createdAt);
           break;
         default:
-          aValue = a.fullName.toLowerCase();
-          bValue = b.fullName.toLowerCase();
+          aValue = `${a.firstName || ''} ${a.lastName || ''}`.trim().toLowerCase();
+          bValue = `${b.firstName || ''} ${b.lastName || ''}`.trim().toLowerCase();
       }
 
       if (sortOrder === 'asc') {
@@ -164,6 +146,7 @@ const PatientsListPage = () => {
 
   // Get status color
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status.toLowerCase()) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'inactive': return 'bg-gray-100 text-gray-800';
@@ -436,25 +419,25 @@ const PatientsListPage = () => {
                 </tr>
               ) : (
                 currentPatients.map((patient) => (
-                  <tr key={patient.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/admin/patients/${patient.id}`)}>
+                  <tr key={patient.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/doctor/patients/${patient.id}`)}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                           {patient.profileImage ? (
                             <img 
                               src={patient.profileImage} 
-                              alt={patient.fullName}
+                              alt={`${patient.firstName || ''} ${patient.lastName || ''}`.trim()}
                               className="w-full h-full object-cover rounded-full"
                             />
                           ) : (
                             <span className="text-white text-sm font-bold">
-                              {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
+                              {patient.firstName?.charAt(0) || ''}{patient.lastName?.charAt(0) || ''}
                             </span>
                           )}
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{patient.fullName}</div>
-                          <div className="text-sm text-gray-500">{patient.id}</div>
+                          <div className="text-sm font-medium text-gray-900">{`${patient.firstName || ''} ${patient.lastName || ''}`.trim()}</div>
+                          <div className="text-sm text-gray-500">{`PAT-${patient.id}`}</div>
                         </div>
                       </div>
                     </td>
@@ -463,33 +446,28 @@ const PatientsListPage = () => {
                       <div className="text-sm text-gray-500">{patient.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{patient.age} years • {patient.gender}</div>
-                      <div className="text-sm text-gray-500">Blood: {patient.bloodGroup}</div>
+                      <div className="text-sm text-gray-900">{patient.dateOfBirth ? new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear() : 'N/A'} years • {patient.gender || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">Blood: {patient.bloodGroup || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{patient.primaryDoctor}</div>
-                      <div className="text-sm text-gray-500">{patient.department}</div>
+                      <div className="text-sm text-gray-900">{patient.primaryDoctor || 'Not Assigned'}</div>
+                      <div className="text-sm text-gray-500">{patient.department || 'General'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{new Date(patient.lastVisit).toLocaleDateString()}</div>
-                      <div className="text-sm text-gray-500">{patient.totalAppointments} total visits</div>
+                      <div className="text-sm text-gray-900">{new Date(patient.updatedAt).toLocaleDateString()}</div>
+                      <div className="text-sm text-gray-500">0 total visits</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(patient.status)}`}>
-                        {patient.status}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(patient.isActive ? 'active' : 'inactive')}`}>
+                        {patient.isActive ? 'Active' : 'Inactive'}
                       </span>
-                      {patient.pendingBills > 0 && (
-                        <div className="text-xs text-red-600 mt-1">
-                          ${patient.pendingBills} pending
-                        </div>
-                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/admin/patients/${patient.id}`);
+                            navigate(`/doctor/patients/${patient.id}`);
                           }}
                           className="text-blue-600 hover:text-blue-900"
                         >
@@ -498,7 +476,7 @@ const PatientsListPage = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/admin/patients/edit/${patient.id}`);
+                            navigate(`/doctor/patients/edit/${patient.id}`);
                           }}
                           className="text-green-600 hover:text-green-900"
                         >
@@ -507,7 +485,7 @@ const PatientsListPage = () => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate('/admin/appointments/add', { state: { patientId: patient.id } });
+                            navigate('/doctor/appointments/manage', { state: { patientId: patient.id } });
                           }}
                           className="text-purple-600 hover:text-purple-900"
                         >

@@ -1,407 +1,480 @@
-const { Invoice, Patient, Doctor, User } = require('../models');
+const { User, Appointment, Invoice, Prescription } = require('../models');
 const { Op } = require('sequelize');
 
-// @desc    Get all invoices
-// @route   GET /api/invoices
-// @access  Private
 const getAllInvoices = async (req, res) => {
   try {
     const {
       page = 1,
       limit = 10,
       search = '',
-      status = '',
-      paymentStatus = '',
+      payment_status = '',
       patientId = '',
-      doctorId = '',
-      date = ''
+      doctorId = ''
     } = req.query;
 
     const offset = (page - 1) * limit;
     const whereClause = {};
 
-    // Role-based filtering
-    if (req.user.role === 'patient') {
-      // Patients can only see their own invoices
-      const patient = await Patient.findOne({ where: { userId: req.user.id } });
-      if (!patient) {
-        return res.status(404).json({
-          success: false,
-          error: 'Patient profile not found'
-        });
-      }
-      whereClause.patientId = patient.id;
-    } else if (req.user.role === 'doctor') {
-      // Doctors can only see their own invoices
-      const doctor = await Doctor.findOne({ where: { userId: req.user.id } });
-      if (!doctor) {
-        return res.status(404).json({
-          success: false,
-          error: 'Doctor profile not found'
-        });
-      }
-      whereClause.doctorId = doctor.id;
-    }
-    // Admin can see all invoices (no additional filtering)
+    if (payment_status) whereClause.payment_status = payment_status;
+    if (patientId) whereClause.patientId = patientId;
+    if (doctorId) whereClause.doctorId = doctorId;
 
-    // Search functionality
     if (search) {
       whereClause[Op.or] = [
-        { invoiceId: { [Op.iLike]: `%${search}%` } },
-        { notes: { [Op.iLike]: `%${search}%` } }
+        { invoice_number: { [Op.iLike]: `%${search}%` } },
+        { description: { [Op.iLike]: `%${search}%` } }
       ];
     }
 
-    if (status) {
-      whereClause.status = status;
-    }
-
-    if (paymentStatus) {
-      whereClause.paymentStatus = paymentStatus;
-    }
-
-    if (patientId && req.user.role === 'admin') {
-      whereClause.patientId = patientId;
-    }
-
-    if (doctorId && (req.user.role === 'admin' || req.user.role === 'doctor')) {
-      whereClause.doctorId = doctorId;
-    }
-
-    if (date) {
-      whereClause.invoiceDate = date;
-    }
-
-    // Simplified query without complex associations to avoid errors
-    const { count, rows: invoices } = await Invoice.findAndCountAll({
+    const invoices = await Invoice.findAndCountAll({
       where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'patient',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+        },
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName', 'specialty']
+        },
+        {
+          model: Appointment,
+          as: 'appointment',
+          attributes: ['id', 'appointment_id', 'appointment_date', 'appointment_time']
+        }
+      ],
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['invoiceDate', 'DESC']]
+      order: [['invoice_date', 'DESC']]
     });
 
-    const totalPages = Math.ceil(count / limit);
-
     res.json({
-      success: true,
+      status: 'success',
       data: {
-        invoices,
+        invoices: invoices.rows,
         pagination: {
           currentPage: parseInt(page),
-          totalPages,
-          totalItems: count,
+          totalPages: Math.ceil(invoices.count / limit),
+          totalItems: invoices.count,
           itemsPerPage: parseInt(limit)
         }
       }
     });
   } catch (error) {
-    console.error('Get all invoices error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error fetching invoices'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Get single invoice
-// @route   GET /api/invoices/:id
-// @access  Private
 const getInvoice = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const invoice = await Invoice.findByPk(id, {
+    const invoice = await Invoice.findByPk(req.params.id, {
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: { exclude: ['password'] }
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'address']
         },
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: { exclude: ['password'] }
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'specialty', 'qualification']
+        },
+        {
+          model: Appointment,
+          as: 'appointment',
+          attributes: ['id', 'appointment_id', 'appointment_date', 'appointment_time', 'appointment_type']
         }
       ]
     });
 
     if (!invoice) {
       return res.status(404).json({
-        success: false,
-        error: 'Invoice not found'
+        status: 'error',
+        message: 'Invoice not found'
       });
     }
 
     res.json({
-      success: true,
+      status: 'success',
       data: { invoice }
     });
   } catch (error) {
-    console.error('Get invoice error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error fetching invoice'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Create invoice
-// @route   POST /api/invoices
-// @access  Private (Admin)
 const createInvoice = async (req, res) => {
   try {
     const {
       patientId,
       doctorId,
-      appointmentId,
-      prescriptionId,
-      invoiceDate,
-      dueDate,
-      items,
-      subtotal,
-      taxAmount,
-      taxRate,
-      discountAmount,
-      discountPercentage,
-      insuranceAmount,
-      insuranceCoverage,
-      totalAmount,
-      notes,
-      terms,
-      billingAddress,
-      shippingAddress,
-      isUrgent,
-      isRecurring,
-      recurringFrequency
+      appointment_id,
+      total_amount,
+      description,
+      due_date,
+      tax_amount,
+      discount_amount
     } = req.body;
 
-    // Generate invoice ID
-    const invoiceId = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const patient = await User.findOne({ where: { id: patientId, role: 'patient' } });
+    const doctor = await User.findOne({ where: { id: doctorId, role: 'doctor' } });
 
-    // Calculate amounts if not provided
-    const calculatedSubtotal = subtotal || 0;
-    const calculatedTaxAmount = taxAmount || (calculatedSubtotal * (taxRate || 0) / 100);
-    const calculatedDiscountAmount = discountAmount || (calculatedSubtotal * (discountPercentage || 0) / 100);
-    const calculatedInsuranceAmount = insuranceAmount || (calculatedSubtotal * (insuranceCoverage || 0) / 100);
-    const calculatedTotalAmount = totalAmount || (calculatedSubtotal + calculatedTaxAmount - calculatedDiscountAmount - calculatedInsuranceAmount);
+    if (!patient || !doctor) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid patient or doctor ID'
+      });
+    }
 
-    // Create invoice
+    if (appointment_id) {
+      const appointment = await Appointment.findByPk(appointment_id);
+      if (!appointment) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid appointment ID'
+        });
+      }
+    }
+
+    const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+    const finalAmount = parseFloat(total_amount) + parseFloat(tax_amount || 0) - parseFloat(discount_amount || 0);
+
     const invoice = await Invoice.create({
-      invoiceId,
+      invoice_number: invoiceNumber,
       patientId,
       doctorId,
-      appointmentId,
-      prescriptionId,
-      invoiceDate,
-      dueDate,
-      items,
-      subtotal: calculatedSubtotal,
-      taxAmount: calculatedTaxAmount,
-      taxRate,
-      discountAmount: calculatedDiscountAmount,
-      discountPercentage,
-      insuranceAmount: calculatedInsuranceAmount,
-      insuranceCoverage,
-      totalAmount: calculatedTotalAmount,
-      balanceAmount: calculatedTotalAmount,
-      notes,
-      terms,
-      billingAddress,
-      shippingAddress,
-      isUrgent,
-      isRecurring,
-      recurringFrequency
+      appointment_id,
+      total_amount: finalAmount,
+      due_amount: finalAmount,
+      description,
+      due_date,
+      tax_amount: tax_amount || 0,
+      discount_amount: discount_amount || 0
     });
 
-    // Fetch created invoice with associations
-    const createdInvoice = await Invoice.findByPk(invoice.id, {
+    const newInvoice = await Invoice.findByPk(invoice.id, {
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'email']
         },
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'specialty']
         }
       ]
     });
 
     res.status(201).json({
-      success: true,
-      message: 'Invoice created successfully',
-      data: { invoice: createdInvoice }
+      status: 'success',
+      data: { invoice: newInvoice }
     });
   } catch (error) {
-    console.error('Create invoice error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error creating invoice'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Update invoice
-// @route   PUT /api/invoices/:id
-// @access  Private (Admin)
 const updateInvoice = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updateData = req.body;
-
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) {
       return res.status(404).json({
-        success: false,
-        error: 'Invoice not found'
+        status: 'error',
+        message: 'Invoice not found'
       });
     }
 
-    // Update invoice
-    await invoice.update(updateData);
+    await invoice.update(req.body);
 
-    // Fetch updated invoice with associations
-    const updatedInvoice = await Invoice.findByPk(id, {
+    const updatedInvoice = await Invoice.findByPk(req.params.id, {
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'email']
         },
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: ['id', 'firstName', 'lastName', 'specialty']
         }
       ]
     });
 
     res.json({
-      success: true,
-      message: 'Invoice updated successfully',
+      status: 'success',
       data: { invoice: updatedInvoice }
     });
   } catch (error) {
-    console.error('Update invoice error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error updating invoice'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Delete invoice
-// @route   DELETE /api/invoices/:id
-// @access  Private (Admin)
 const deleteInvoice = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const invoice = await Invoice.findByPk(id);
+    const invoice = await Invoice.findByPk(req.params.id);
     if (!invoice) {
       return res.status(404).json({
-        success: false,
-        error: 'Invoice not found'
+        status: 'error',
+        message: 'Invoice not found'
       });
     }
 
     await invoice.destroy();
 
     res.json({
-      success: true,
+      status: 'success',
       message: 'Invoice deleted successfully'
     });
   } catch (error) {
-    console.error('Delete invoice error:', error);
     res.status(500).json({
-      success: false,
-      error: 'Error deleting invoice'
+      status: 'error',
+      message: error.message
     });
   }
 };
 
-// @desc    Get invoice statistics
-// @route   GET /api/invoices/stats
-// @access  Private (Admin)
-const getInvoiceStats = async (req, res) => {
+const markAsPaid = async (req, res) => {
   try {
-    const totalInvoices = await Invoice.count();
-    const paidInvoices = await Invoice.count({ where: { paymentStatus: 'paid' } });
-    const pendingInvoices = await Invoice.count({ where: { paymentStatus: 'pending' } });
-    const overdueInvoices = await Invoice.count({ where: { paymentStatus: 'overdue' } });
+    const { payment_method, paid_amount } = req.body;
+    const invoice = await Invoice.findByPk(req.params.id);
+    
+    if (!invoice) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Invoice not found'
+      });
+    }
 
-    // Calculate total revenue
-    const totalRevenue = await Invoice.sum('totalAmount', {
-      where: { paymentStatus: 'paid' }
+    const amountToPay = paid_amount || invoice.total_amount;
+    const newPaidAmount = parseFloat(invoice.paid_amount) + parseFloat(amountToPay);
+    const newDueAmount = parseFloat(invoice.total_amount) - newPaidAmount;
+
+    let paymentStatus = 'partial';
+    if (newDueAmount <= 0) {
+      paymentStatus = 'paid';
+    } else if (newPaidAmount === 0) {
+      paymentStatus = 'pending';
+    }
+
+    await invoice.update({
+      paid_amount: newPaidAmount,
+      due_amount: Math.max(0, newDueAmount),
+      payment_status: paymentStatus,
+      payment_method,
+      paid_date: paymentStatus === 'paid' ? new Date().toISOString().split('T')[0] : invoice.paid_date
     });
 
-    // Calculate pending amount
-    const pendingAmount = await Invoice.sum('totalAmount', {
-      where: { paymentStatus: 'pending' }
+    const updatedInvoice = await Invoice.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'patient',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName', 'specialty']
+        }
+      ]
     });
 
-    // Get invoices by status
-    const invoicesByStatus = await Invoice.findAll({
-      attributes: ['status'],
-      group: ['status'],
-      raw: true
+    res.json({
+      status: 'success',
+      data: { invoice: updatedInvoice }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+};
+
+const purchasePrescription = async (req, res) => {
+  try {
+    const { prescriptionId } = req.params;
+    const userId = req.user.id;
+
+    const prescription = await Prescription.findByPk(prescriptionId, {
+      include: [
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName']
+        }
+      ]
+    });
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prescription not found'
+      });
+    }
+
+    if (prescription.patientId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to purchase this prescription'
+      });
+    }
+
+    if (prescription.status === 'purchased') {
+      return res.status(400).json({
+        success: false,
+        message: 'Prescription already purchased'
+      });
+    }
+
+    const invoiceNumber = `INV-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const invoice = await Invoice.create({
+      invoice_number: invoiceNumber,
+      patientId: userId,
+      doctorId: prescription.doctorId,
+      total_amount: prescription.cost || 0,
+      paid_amount: prescription.cost || 0,
+      outstanding_amount: 0,
+      payment_status: 'paid',
+      payment_method: 'cash',
+      invoice_date: new Date(),
+      payment_date: new Date(),
+      description: `Prescription purchase - ${prescription.prescriptionId}`,
+      notes: `Purchased prescription containing medications`
+    });
+
+    await prescription.update({
+      status: 'purchased',
+      purchaseDate: new Date()
+    });
+
+    const invoiceWithDetails = await Invoice.findByPk(invoice.id, {
+      include: [
+        {
+          model: User,
+          as: 'patient',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        },
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName']
+        }
+      ]
+    });
+
+    res.json({
+      success: true,
+      message: 'Prescription purchased successfully',
+      data: {
+        invoice: invoiceWithDetails,
+        prescription: prescription
+      }
+    });
+  } catch (error) {
+    console.error('Error purchasing prescription:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to purchase prescription'
+    });
+  }
+};
+
+const getPatientInvoices = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const invoices = await Invoice.findAndCountAll({
+      where: { patientId: userId },
+      include: [
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['id', 'firstName', 'lastName', 'specialty']
+        }
+      ],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['invoice_date', 'DESC']]
     });
 
     res.json({
       success: true,
       data: {
-        totalInvoices,
-        paidInvoices,
-        pendingInvoices,
-        overdueInvoices,
-        totalRevenue: totalRevenue || 0,
-        pendingAmount: pendingAmount || 0,
-        invoicesByStatus
+        invoices: invoices.rows,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(invoices.count / limit),
+          totalItems: invoices.count,
+          itemsPerPage: parseInt(limit)
+        }
       }
     });
   } catch (error) {
-    console.error('Get invoice stats error:', error);
+    console.error('Error fetching patient invoices:', error);
     res.status(500).json({
       success: false,
-      error: 'Error fetching invoice statistics'
+      message: 'Failed to fetch invoices'
+    });
+  }
+};
+
+const resetPrescriptionStatus = async (req, res) => {
+  try {
+    const { prescriptionId } = req.params;
+    const userId = req.user.id;
+
+    const prescription = await Prescription.findByPk(prescriptionId);
+
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prescription not found'
+      });
+    }
+
+    if (prescription.patientId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to reset this prescription'
+      });
+    }
+
+    await prescription.update({
+      status: 'active'
+    });
+
+    res.json({
+      success: true,
+      message: 'Prescription status reset to active',
+      data: { prescription }
+    });
+  } catch (error) {
+    console.error('Error resetting prescription status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset prescription status'
     });
   }
 };
@@ -412,5 +485,8 @@ module.exports = {
   createInvoice,
   updateInvoice,
   deleteInvoice,
-  getInvoiceStats
+  markAsPaid,
+  purchasePrescription,
+  getPatientInvoices,
+  resetPrescriptionStatus
 };

@@ -3,7 +3,7 @@ const API_BASE_URL = 'http://localhost:9999/api';
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('token') || localStorage.getItem('hospitalToken') || sessionStorage.getItem('hospitalToken');
+  return localStorage.getItem('hospitalToken') || sessionStorage.getItem('hospitalToken') || localStorage.getItem('token');
 };
 
 // Helper function to get auth headers
@@ -184,6 +184,10 @@ export const doctorsAPI = {
 
   getSchedule: async (doctorId, date) => {
     return apiRequest(`/doctors/${doctorId}/schedule?date=${date}`);
+  },
+
+  getPatients: async () => {
+    return apiRequest('/auth/users?role=patient');
   }
 };
 
@@ -224,6 +228,28 @@ export const appointmentsAPI = {
       method: 'PUT',
       body: JSON.stringify(newDateTime)
     });
+  },
+
+  confirm: async (id) => {
+    return apiRequest(`/appointments/${id}/confirm`, {
+      method: 'PUT'
+    });
+  },
+
+  complete: async (id, completionData) => {
+    return apiRequest(`/appointments/${id}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify(completionData)
+    });
+  },
+
+  getAvailableSlots: async (doctorId, date) => {
+    return apiRequest(`/appointments/available-slots/${doctorId}/${date}`);
+  },
+
+  getByDoctor: async (doctorId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/appointments/doctor/${doctorId}${queryString ? `?${queryString}` : ''}`);
   }
 };
 
@@ -250,6 +276,27 @@ export const prescriptionsAPI = {
       method: 'PUT',
       body: JSON.stringify(prescriptionData)
     });
+  },
+
+  purchase: async (id) => {
+    return apiRequest(`/invoices/purchase/${id}`, {
+      method: 'POST'
+    });
+  },
+
+  getByPatient: async (patientId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/prescriptions/patient/${patientId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getByUser: async (userId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/prescriptions/user/${userId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getByDoctor: async (doctorId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/prescriptions/doctor/${doctorId}${queryString ? `?${queryString}` : ''}`);
   }
 };
 
@@ -278,10 +325,29 @@ export const invoicesAPI = {
     });
   },
 
-  pay: async (id, paymentData) => {
-    return apiRequest(`/invoices/${id}/pay`, {
+  processPayment: async (id, paymentData) => {
+    return apiRequest(`/invoices/${id}/payment`, {
       method: 'POST',
       body: JSON.stringify(paymentData)
+    });
+  },
+
+  getPaymentHistory: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/invoices/payment-history${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getStats: async () => {
+    return apiRequest('/invoices/stats');
+  },
+
+  getPatientInvoices: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/invoices/patient/list${queryString ? `?${queryString}` : ''}`);
+  },
+  resetPrescriptionStatus: (prescriptionId) => {
+    return apiRequest(`/invoices/reset/${prescriptionId}`, {
+      method: 'PATCH'
     });
   }
 };
@@ -293,6 +359,10 @@ export const dashboardAPI = {
   },
 
   getPatientDashboard: async () => {
+    return apiRequest('/dashboard/patient');
+  },
+
+  getPatientStats: async () => {
     return apiRequest('/dashboard/patient');
   },
 

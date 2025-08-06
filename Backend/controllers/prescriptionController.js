@@ -1,9 +1,6 @@
-const { User, Patient, Doctor, Prescription } = require('../models');
+const { User, Prescription, Appointment } = require('../models');
 const { Op } = require('sequelize');
 
-// @desc    Get all prescriptions
-// @route   GET /api/prescriptions
-// @access  Private
 const getAllPrescriptions = async (req, res) => {
   try {
     const {
@@ -19,31 +16,12 @@ const getAllPrescriptions = async (req, res) => {
     const offset = (page - 1) * limit;
     const whereClause = {};
 
-    // Role-based filtering
-    if (req.user.role === 'patient') {
-      // Patients can only see their own prescriptions
-      const patient = await Patient.findOne({ where: { userId: req.user.id } });
-      if (!patient) {
-        return res.status(404).json({
-          success: false,
-          error: 'Patient profile not found'
-        });
-      }
-      whereClause.patientId = patient.id;
-    } else if (req.user.role === 'doctor') {
-      // Doctors can only see their own prescriptions
-      const doctor = await Doctor.findOne({ where: { userId: req.user.id } });
-      if (!doctor) {
-        return res.status(404).json({
-          success: false,
-          error: 'Doctor profile not found'
-        });
-      }
-      whereClause.doctorId = doctor.id;
+    if (req.user && req.user.role === 'patient') {
+      whereClause.patientId = req.user.id;
+    } else if (req.user && req.user.role === 'doctor') {
+      whereClause.doctorId = req.user.id;
     }
-    // Admin can see all prescriptions (no additional filtering)
 
-    // Search functionality
     if (search) {
       whereClause[Op.or] = [
         { prescriptionId: { [Op.iLike]: `%${search}%` } },
@@ -56,11 +34,11 @@ const getAllPrescriptions = async (req, res) => {
       whereClause.status = status;
     }
 
-    if (patientId && req.user.role === 'admin') {
+    if (patientId && req.user && req.user.role === 'admin') {
       whereClause.patientId = patientId;
     }
 
-    if (doctorId && (req.user.role === 'admin' || req.user.role === 'doctor')) {
+    if (doctorId && req.user && (req.user.role === 'admin' || req.user.role === 'doctor')) {
       whereClause.doctorId = doctorId;
     }
 
@@ -68,12 +46,23 @@ const getAllPrescriptions = async (req, res) => {
       whereClause.isUrgent = isUrgent === 'true';
     }
 
-    // Simplified query without complex associations to avoid errors
     const { count, rows: prescriptions } = await Prescription.findAndCountAll({
       where: whereClause,
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['prescribedDate', 'DESC']]
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'patient',
+          attributes: { exclude: ['password'] }
+        },
+        {
+          model: User,
+          as: 'doctor',
+          attributes: { exclude: ['password'] }
+        }
+      ]
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -99,9 +88,6 @@ const getAllPrescriptions = async (req, res) => {
   }
 };
 
-// @desc    Get single prescription
-// @route   GET /api/prescriptions/:id
-// @access  Private
 const getPrescription = async (req, res) => {
   try {
     const { id } = req.params;
@@ -109,26 +95,14 @@ const getPrescription = async (req, res) => {
     const prescription = await Prescription.findByPk(id, {
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: { exclude: ['password'] }
-            }
-          ]
+          attributes: { exclude: ['password'] }
         },
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: { exclude: ['password'] }
-            }
-          ]
+          attributes: { exclude: ['password'] }
         }
       ]
     });
@@ -153,9 +127,6 @@ const getPrescription = async (req, res) => {
   }
 };
 
-// @desc    Create prescription
-// @route   POST /api/prescriptions
-// @access  Private (Doctor)
 const createPrescription = async (req, res) => {
   try {
     const {
@@ -189,14 +160,21 @@ const createPrescription = async (req, res) => {
       insuranceCoverage
     } = req.body;
 
-    // Generate prescription ID
     const prescriptionId = `PRESC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Create prescription
+    const finalDoctorId = req.user && req.user.role === 'doctor' ? req.user.id : doctorId;
+
+    if (!finalDoctorId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Doctor ID is required. Please ensure you are logged in as a doctor or provide a valid doctorId.'
+      });
+    }
+
     const prescription = await Prescription.create({
       prescriptionId,
       patientId,
-      doctorId,
+      doctorId: finalDoctorId,
       appointmentId,
       diagnosis,
       symptoms,
@@ -222,33 +200,22 @@ const createPrescription = async (req, res) => {
       lifestyleChanges,
       alternativeMedications,
       cost,
-      insuranceCoverage
+      insuranceCoverage,
+      status: 'active',
+      prescribedDate: new Date()
     });
 
-    // Fetch created prescription with associations
     const createdPrescription = await Prescription.findByPk(prescription.id, {
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: { exclude: ['password'] }
         },
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          attributes: { exclude: ['password'] }
         }
       ]
     });
@@ -267,9 +234,6 @@ const createPrescription = async (req, res) => {
   }
 };
 
-// @desc    Update prescription
-// @route   PUT /api/prescriptions/:id
-// @access  Private (Doctor)
 const updatePrescription = async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,33 +247,27 @@ const updatePrescription = async (req, res) => {
       });
     }
 
-    // Update prescription
     await prescription.update(updateData);
 
-    // Fetch updated prescription with associations
     const updatedPrescription = await Prescription.findByPk(id, {
       include: [
         {
           model: Patient,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: { exclude: ['password'] }
+          }]
         },
         {
           model: Doctor,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName', 'email', 'phone']
-            }
-          ]
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: { exclude: ['password'] }
+          }]
         }
       ]
     });
@@ -328,9 +286,6 @@ const updatePrescription = async (req, res) => {
   }
 };
 
-// @desc    Delete prescription
-// @route   DELETE /api/prescriptions/:id
-// @access  Private (Doctor)
 const deletePrescription = async (req, res) => {
   try {
     const { id } = req.params;
@@ -358,99 +313,6 @@ const deletePrescription = async (req, res) => {
   }
 };
 
-// @desc    Get prescription statistics
-// @route   GET /api/prescriptions/stats
-// @access  Private (Admin/Doctor)
-const getPrescriptionStats = async (req, res) => {
-  try {
-    const totalPrescriptions = await Prescription.count();
-    const activePrescriptions = await Prescription.count({ where: { status: 'active' } });
-    const urgentPrescriptions = await Prescription.count({ where: { isUrgent: true } });
-    const controlledPrescriptions = await Prescription.count({ where: { isControlled: true } });
-
-    // Get prescriptions by status
-    const prescriptionsByStatus = await Prescription.findAll({
-      attributes: ['status'],
-      group: ['status'],
-      raw: true
-    });
-
-    res.json({
-      success: true,
-      data: {
-        totalPrescriptions,
-        activePrescriptions,
-        urgentPrescriptions,
-        controlledPrescriptions,
-        prescriptionsByStatus
-      }
-    });
-  } catch (error) {
-    console.error('Get prescription stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error fetching prescription statistics'
-    });
-  }
-};
-
-// @desc    Get prescription by ID
-// @route   GET /api/prescriptions/:id
-// @access  Private (Admin/Doctor/Patient)
-const getPrescriptionById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const prescription = await Prescription.findByPk(id, {
-      include: [
-        {
-          model: Patient,
-          as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
-        },
-        {
-          model: Doctor,
-          as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
-        }
-      ]
-    });
-
-    if (!prescription) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Prescription not found'
-      });
-    }
-
-    res.status(200).json({
-      status: 'success',
-      data: prescription
-    });
-  } catch (error) {
-    console.error('Get prescription by ID error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
-    });
-  }
-};
-
-// @desc    Get prescriptions by patient
-// @route   GET /api/prescriptions/patient/:patientId
-// @access  Private (Admin/Doctor/Patient)
 const getPrescriptionsByPatient = async (req, res) => {
   try {
     const { patientId } = req.params;
@@ -462,15 +324,9 @@ const getPrescriptionsByPatient = async (req, res) => {
       where: { patientId: patientId },
       include: [
         {
-          model: Doctor,
+          model: User,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
+          attributes: ['firstName', 'lastName']
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -479,7 +335,7 @@ const getPrescriptionsByPatient = async (req, res) => {
     });
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
         prescriptions,
         pagination: {
@@ -493,15 +349,62 @@ const getPrescriptionsByPatient = async (req, res) => {
   } catch (error) {
     console.error('Get prescriptions by patient error:', error);
     res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
+      success: false,
+      error: 'Internal server error'
     });
   }
 };
 
-// @desc    Get prescriptions by doctor
-// @route   GET /api/prescriptions/doctor/:doctorId
-// @access  Private (Admin/Doctor)
+const getPrescriptionsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'patient') {
+      return res.status(404).json({
+        success: false,
+        error: 'Patient not found'
+      });
+    }
+
+    const offset = (page - 1) * limit;
+
+    const { count, rows: prescriptions } = await Prescription.findAndCountAll({
+      where: { patientId: userId },
+      include: [
+        {
+          model: User,
+          as: 'doctor',
+          attributes: ['firstName', 'lastName']
+        }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        prescriptions,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(count / limit),
+          totalItems: count,
+          itemsPerPage: parseInt(limit)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get prescriptions by user ID error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
 const getPrescriptionsByDoctor = async (req, res) => {
   try {
     const { doctorId } = req.params;
@@ -513,15 +416,9 @@ const getPrescriptionsByDoctor = async (req, res) => {
       where: { doctorId: doctorId },
       include: [
         {
-          model: Patient,
+          model: User,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
+          attributes: ['firstName', 'lastName']
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -530,7 +427,7 @@ const getPrescriptionsByDoctor = async (req, res) => {
     });
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
         prescriptions,
         pagination: {
@@ -544,23 +441,20 @@ const getPrescriptionsByDoctor = async (req, res) => {
   } catch (error) {
     console.error('Get prescriptions by doctor error:', error);
     res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
+      success: false,
+      error: 'Internal server error'
     });
   }
 };
 
-// @desc    Search prescriptions
-// @route   GET /api/prescriptions/search
-// @access  Private (Admin/Doctor)
 const searchPrescriptions = async (req, res) => {
   try {
     const { q = '', page = 1, limit = 10 } = req.query;
 
     if (!q.trim()) {
       return res.status(400).json({
-        status: 'error',
-        message: 'Search query is required'
+        success: false,
+        error: 'Search query is required'
       });
     }
 
@@ -571,31 +465,28 @@ const searchPrescriptions = async (req, res) => {
         [Op.or]: [
           { prescriptionId: { [Op.iLike]: `%${q}%` } },
           { diagnosis: { [Op.iLike]: `%${q}%` } },
-          { symptoms: { [Op.iLike]: `%${q}%` } }
+          { symptoms: { [Op.iLike]: `%${q}%` } },
+          { medications: { [Op.iLike]: `%${q}%` } }
         ]
       },
       include: [
         {
           model: Patient,
           as: 'patient',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName']
+          }]
         },
         {
           model: Doctor,
           as: 'doctor',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName']
-            }
-          ]
+          include: [{
+            model: User,
+            as: 'user',
+            attributes: ['firstName', 'lastName']
+          }]
         }
       ],
       order: [['createdAt', 'DESC']],
@@ -604,7 +495,7 @@ const searchPrescriptions = async (req, res) => {
     });
 
     res.status(200).json({
-      status: 'success',
+      success: true,
       data: {
         prescriptions,
         pagination: {
@@ -618,8 +509,41 @@ const searchPrescriptions = async (req, res) => {
   } catch (error) {
     console.error('Search prescriptions error:', error);
     res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
+const purchasePrescription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { purchaseData } = req.body;
+
+    const prescription = await Prescription.findByPk(id);
+    if (!prescription) {
+      return res.status(404).json({
+        success: false,
+        error: 'Prescription not found'
+      });
+    }
+
+    await prescription.update({
+      status: 'purchased',
+      purchaseDate: new Date(),
+      ...purchaseData
+    });
+
+    res.json({
+      success: true,
+      message: 'Prescription purchased successfully',
+      data: { prescription }
+    });
+  } catch (error) {
+    console.error('Purchase prescription error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Error processing prescription purchase'
     });
   }
 };
@@ -627,12 +551,12 @@ const searchPrescriptions = async (req, res) => {
 module.exports = {
   getAllPrescriptions,
   getPrescription,
-  getPrescriptionById,
   createPrescription,
   updatePrescription,
   deletePrescription,
   getPrescriptionsByPatient,
+  getPrescriptionsByUserId,
   getPrescriptionsByDoctor,
   searchPrescriptions,
-  getPrescriptionStats
+  purchasePrescription
 };

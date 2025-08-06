@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { patientsAPI, prescriptionsAPI, doctorsAPI } from '../../services/api';
 
 const PrescriptionPage = () => {
   const navigate = useNavigate();
@@ -13,25 +14,94 @@ const PrescriptionPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [patients, setPatients] = useState([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   const { register, handleSubmit, formState: { errors }, reset, watch } = useForm();
 
   // Empty prescriptions data - no dummy data
   const samplePrescriptions = [];
 
-  // Empty medications database - no dummy data
-  const medicationsDatabase = [];
+  // Medications database
+  const medicationsDatabase = [
+    { name: 'Amoxicillin', category: 'Antibiotic' },
+    { name: 'Ibuprofen', category: 'Pain Relief' },
+    { name: 'Acetaminophen', category: 'Pain Relief' },
+    { name: 'Lisinopril', category: 'Blood Pressure' },
+    { name: 'Metformin', category: 'Diabetes' },
+    { name: 'Atorvastatin', category: 'Cholesterol' },
+    { name: 'Omeprazole', category: 'Acid Reducer' },
+    { name: 'Albuterol', category: 'Respiratory' },
+    { name: 'Prednisone', category: 'Steroid' },
+    { name: 'Azithromycin', category: 'Antibiotic' },
+    { name: 'Hydrochlorothiazide', category: 'Diuretic' },
+    { name: 'Gabapentin', category: 'Nerve Pain' },
+    { name: 'Sertraline', category: 'Antidepressant' },
+    { name: 'Losartan', category: 'Blood Pressure' },
+    { name: 'Furosemide', category: 'Diuretic' }
+  ];
 
-  // Load prescriptions
+  // Get doctor info from localStorage/sessionStorage
+  const getDoctorInfo = () => {
+    try {
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        return {
+          id: userData.id,
+          name: `${userData.firstName} ${userData.lastName}`,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          role: userData.role
+        };
+      }
+    } catch (error) {
+      console.error('Error getting doctor info:', error);
+    }
+    return null;
+  };
+
+  // Fetch patients who have appointments with this doctor
+  const fetchPatients = async () => {
+    setLoadingPatients(true);
+    try {
+      const response = await doctorsAPI.getPatients();
+      if (response.success) {
+        setPatients(response.data.users || []);
+      }
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
+  // Load prescriptions for current doctor
   useEffect(() => {
     const loadPrescriptions = async () => {
       setLoading(true);
       try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setPrescriptions(samplePrescriptions);
-        setFilteredPrescriptions(samplePrescriptions);
+        const doctorInfo = getDoctorInfo();
+        if (!doctorInfo) {
+          console.error('No doctor info found');
+          return;
+        }
+
+        const response = await prescriptionsAPI.getByDoctor(doctorInfo.id);
+        if (response.success) {
+          setPrescriptions(response.data.prescriptions || []);
+          setFilteredPrescriptions(response.data.prescriptions || []);
+        } else {
+          console.error('Failed to load prescriptions:', response.error);
+          setPrescriptions([]);
+          setFilteredPrescriptions([]);
+        }
       } catch (error) {
         console.error('Error loading prescriptions:', error);
+        setPrescriptions([]);
+        setFilteredPrescriptions([]);
       } finally {
         setLoading(false);
       }
@@ -39,6 +109,13 @@ const PrescriptionPage = () => {
 
     loadPrescriptions();
   }, []);
+
+  // Load patients when modal opens
+  useEffect(() => {
+    if (showCreateModal) {
+      fetchPatients();
+    }
+  }, [showCreateModal]);
 
   // Filter prescriptions
   useEffect(() => {
@@ -62,20 +139,42 @@ const PrescriptionPage = () => {
   // Handle prescription creation
   const onSubmit = async (data) => {
     try {
-      console.log('New prescription:', data);
-      
-      const newPrescription = {
-        id: `RX-${String(prescriptions.length + 1).padStart(3, '0')}`,
-        ...data,
-        createdDate: new Date().toISOString().split('T')[0],
-        status: 'active',
-        refills: parseInt(data.refills) || 0
+      if (!selectedPatient) {
+        alert('❌ Please select a patient');
+        return;
+      }
+
+      const prescriptionData = {
+        patientId: selectedPatient.id,
+        diagnosis: data.diagnosis,
+        medications: [{
+          name: data.medicationName,
+          dosage: data.dosage,
+          frequency: data.frequency,
+          duration: data.duration,
+          quantity: parseInt(data.quantity) || 1,
+          instructions: data.instructions
+        }],
+        instructions: data.instructions,
+        duration: parseInt(data.duration) || 7,
+        frequency: data.frequency,
+        quantity: parseInt(data.quantity) || 1,
+        refills: parseInt(data.refills) || 0,
+        notes: data.notes || '',
+        cost: parseFloat(data.cost) || 0
       };
 
-      setPrescriptions([newPrescription, ...prescriptions]);
-      setShowCreateModal(false);
-      reset();
-      alert('✅ Prescription created successfully!');
+      const response = await prescriptionsAPI.create(prescriptionData);
+      
+      if (response.success) {
+        setPrescriptions([response.data.prescription, ...prescriptions]);
+        setShowCreateModal(false);
+        setSelectedPatient(null);
+        reset();
+        alert('✅ Prescription created successfully!');
+      } else {
+        throw new Error(response.error || 'Failed to create prescription');
+      }
       
     } catch (error) {
       console.error('Error creating prescription:', error);
@@ -85,6 +184,7 @@ const PrescriptionPage = () => {
 
   // Get status color
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
@@ -334,6 +434,7 @@ const PrescriptionPage = () => {
                 <button
                   onClick={() => {
                     setShowCreateModal(false);
+                    setSelectedPatient(null);
                     reset();
                   }}
                   className="text-gray-400 hover:text-gray-600"
@@ -348,32 +449,54 @@ const PrescriptionPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Patient Name <span className="text-red-500">*</span>
+                      Select Patient <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      {...register('patientName', { required: 'Patient name is required' })}
+                    <select
+                      value={selectedPatient?.id || ''}
+                      onChange={(e) => {
+                        const patient = patients.find(p => p.id === parseInt(e.target.value));
+                        setSelectedPatient(patient || null);
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter patient name"
-                    />
-                    {errors.patientName && (
-                      <p className="text-red-500 text-sm mt-1">{errors.patientName.message}</p>
+                      required
+                    >
+                      <option value="">Select a patient...</option>
+                      {loadingPatients ? (
+                        <option disabled>Loading patients...</option>
+                      ) : (
+                        patients.map(patient => {
+                          const fullName = patient.full_name || 
+                            `${patient.user?.first_name || patient.user?.firstName || ''} ${patient.user?.last_name || patient.user?.lastName || ''}`.trim() || 
+                            'Unknown Patient';
+                          const patientId = patient.patient_id || patient.id;
+                          return (
+                            <option key={patient.id} value={patient.id}>
+                              {fullName} (ID: {patientId})
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
+                    {!selectedPatient && (
+                      <p className="text-red-500 text-sm mt-1">Please select a patient</p>
                     )}
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Patient ID <span className="text-red-500">*</span>
+                      Patient Details
                     </label>
-                    <input
-                      type="text"
-                      {...register('patientId', { required: 'Patient ID is required' })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                      placeholder="Enter patient ID"
-                    />
-                    {errors.patientId && (
-                      <p className="text-red-500 text-sm mt-1">{errors.patientId.message}</p>
-                    )}
+                    <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-sm">
+                      {selectedPatient ? (
+                        <div>
+                          <p><strong>ID:</strong> {selectedPatient.patient_id || selectedPatient.id}</p>
+                          <p><strong>Email:</strong> {selectedPatient.user?.email || 'N/A'}</p>
+                          <p><strong>Phone:</strong> {selectedPatient.user?.phone || selectedPatient.phone || 'N/A'}</p>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">Select a patient to view details</p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -458,6 +581,35 @@ const PrescriptionPage = () => {
                         />
                         {errors.duration && (
                           <p className="text-red-500 text-xs mt-1">{errors.duration.message}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Quantity</label>
+                        <input
+                          type="number"
+                          min="1"
+                          {...register('quantity', { required: 'Quantity is required' })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="e.g., 30"
+                        />
+                        {errors.quantity && (
+                          <p className="text-red-500 text-xs mt-1">{errors.quantity.message}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Cost ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...register('cost', { required: 'Cost is required' })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                          placeholder="e.g., 25.99"
+                        />
+                        {errors.cost && (
+                          <p className="text-red-500 text-xs mt-1">{errors.cost.message}</p>
                         )}
                       </div>
                     </div>

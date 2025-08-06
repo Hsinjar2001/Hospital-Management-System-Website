@@ -19,19 +19,19 @@ const DoctorLayout = ({ children }) => {
       if (storedUser) {
         const userData = JSON.parse(storedUser);
         return {
-          name: `${userData.firstName} ${userData.lastName}`,
+          name: `${userData.first_name} ${userData.last_name}`,
           email: userData.email,
           role: userData.specialty || 'General Practitioner',
           department: userData.department || 'General Medicine',
           employeeId: `DOC-${userData.id.toString().padStart(3, '0')}`,
-          avatar: userData.profileImage || null,
+          avatar: userData.profile_image || null,
           lastLogin: userData.lastLoginAt || new Date().toISOString(),
           licenseNumber: userData.licenseNumber || 'Not specified',
           yearsOfExperience: userData.yearsOfExperience || 'Not specified',
           currentShift: userData.currentShift || '09:00 - 17:00',
           status: userData.status || 'available',
-          firstName: userData.firstName,
-          lastName: userData.lastName
+          firstName: userData.first_name,
+          lastName: userData.last_name
         };
       }
     } catch (error) {
@@ -121,9 +121,7 @@ const DoctorLayout = ({ children }) => {
       case 'prescription':
         navigate('/doctor/prescriptions');
         break;
-      case 'schedule':
-        navigate('/doctor/schedule');
-        break;
+
       default:
         break;
     }
@@ -143,7 +141,7 @@ const DoctorLayout = ({ children }) => {
     if (path.includes('/dashboard')) return 'Doctor Dashboard';
     if (path.includes('/appointments')) return 'My Appointments';
     if (path.includes('/patients')) return 'My Patients';
-    if (path.includes('/schedule')) return 'My Schedule';
+
     if (path.includes('/prescriptions')) return 'Prescriptions';
     if (path.includes('/reviews')) return 'Patient Reviews';
     if (path.includes('/profile')) return 'My Profile';
@@ -169,6 +167,7 @@ const DoctorLayout = ({ children }) => {
 
   // Get status color
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-500';
     switch (status) {
       case 'available': return 'bg-green-500';
       case 'busy': return 'bg-yellow-500';

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { doctorsAPI, appointmentsAPI } from '../../services/api';
 
 const AppointmentPage = () => {
   const navigate = useNavigate();
@@ -25,16 +26,55 @@ const AppointmentPage = () => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Get current user data
+        const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+        
         // Fetch real appointments and doctors from API
-        // const appointmentsResponse = await appointmentsAPI.getPatientAppointments();
-        // const doctorsResponse = await doctorsAPI.getAll();
-
-        // For now, set empty arrays until APIs are implemented
-        setAppointments([]);
-        setFilteredAppointments([]);
-        setDoctors([]);
+        const doctorsResponse = await doctorsAPI.getAll();
+        
+        // Fetch patient appointments if user is logged in
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+             const patientId = userData.patientId || userData.id;
+             const appointmentsResponse = await appointmentsAPI.getAll({ patientId: patientId });
+            
+            if (appointmentsResponse.status === 'success' && appointmentsResponse.data.appointments) {
+              const formattedAppointments = appointmentsResponse.data.appointments.map(apt => ({
+                id: apt.appointment_id,
+                doctorName: apt.doctor?.firstName && apt.doctor?.lastName ? `${apt.doctor.firstName} ${apt.doctor.lastName}` : 'Unknown Doctor',
+                specialty: apt.doctor?.specialty || 'Unknown Specialty',
+                date: apt.appointment_date,
+                time: apt.appointment_time,
+                status: apt.status,
+                type: apt.appointment_type,
+                reason: apt.symptoms || apt.notes || 'No reason provided',
+                fee: apt.consultation_fee || 'N/A'
+              }));
+              setAppointments(formattedAppointments);
+              setFilteredAppointments(formattedAppointments);
+            } else {
+              setAppointments([]);
+              setFilteredAppointments([]);
+            }
+          } catch (appointmentError) {
+            console.error('Error fetching appointments:', appointmentError);
+            setAppointments([]);
+            setFilteredAppointments([]);
+          }
+        } else {
+          setAppointments([]);
+          setFilteredAppointments([]);
+        }
+        
+        // Set doctors from API response
+        if (doctorsResponse.status === 'success' && doctorsResponse.data && doctorsResponse.data.doctors) {
+          setDoctors(doctorsResponse.data.doctors);
+        } else {
+          setDoctors([]);
+        }
       } catch (error) {
-        console.error('Error loading appointments:', error);
+        console.error('Error loading data:', error);
         // Set empty arrays on error
         setAppointments([]);
         setFilteredAppointments([]);
@@ -88,22 +128,71 @@ const AppointmentPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      const newAppointment = {
-        id: `APT-${Date.now()}`,
-        doctorName: selectedDoctor?.name,
-        department: selectedDoctor?.specialty,
-        date: data.appointmentDate,
-        time: availableSlots.find(slot => slot.value === data.appointmentTime)?.label,
-        status: 'scheduled',
-        type: data.appointmentType,
-        reason: data.reason,
-        fee: selectedDoctor?.fee
-      };
+      const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+      if (!storedUser) {
+        alert('❌ Please log in to book an appointment.');
+        return;
+      }
 
-      setAppointments([newAppointment, ...appointments]);
-      setShowBookModal(false);
-      reset();
-      alert('✅ Appointment booked successfully!');
+      const userData = JSON.parse(storedUser);
+      
+      const selectedDoctorFromForm = data.doctorId;
+      const doctorFromList = doctors.find(d => d.id == selectedDoctorFromForm);
+      
+      // Get patient ID from user data (assuming it's stored in userData.patientId)
+      const patientId = userData.patientId || userData.id;
+      
+      const appointmentData = {
+        patientId: patientId,
+        doctorId: selectedDoctorFromForm,
+        appointmentDate: data.appointmentDate,
+        appointmentTime: data.appointmentTime,
+        appointmentType: data.appointmentType || 'consultation',
+        patientType: 'existing',
+        priority: 'normal',
+        symptoms: data.reason || '',
+        notes: data.notes || '',
+        duration: 30,
+        consultationFee: doctorFromList?.consultationFee || 0
+      };
+      
+      const response = await appointmentsAPI.create(appointmentData);
+      
+      if (response.status === 'success') {
+         setShowBookModal(false);
+         reset();
+         alert('✅ Appointment booked successfully!');
+         
+         // Reload appointments from API to get updated data
+         const storedUser = localStorage.getItem('hospitalUser') || sessionStorage.getItem('hospitalUser');
+         if (storedUser) {
+           try {
+             const userData = JSON.parse(storedUser);
+             const patientId = userData.patientId || userData.id;
+             const appointmentsResponse = await appointmentsAPI.getAll({ patientId: patientId });
+             
+             if (appointmentsResponse.status === 'success' && appointmentsResponse.data.appointments) {
+               const formattedAppointments = appointmentsResponse.data.appointments.map(apt => ({
+                 id: apt.appointment_id,
+                 doctorName: apt.doctor?.user ? `${apt.doctor.user.firstName} ${apt.doctor.user.lastName}` : 'Unknown Doctor',
+                 department: apt.doctor?.specialty || apt.department?.name || 'Unknown Department',
+                 date: apt.appointment_date,
+                 time: apt.appointment_time,
+                 status: apt.status,
+                 type: apt.appointment_type,
+                 reason: apt.symptoms || apt.notes || 'No reason provided',
+                 fee: apt.consultation_fee || 'N/A'
+               }));
+               setAppointments(formattedAppointments);
+               setFilteredAppointments(formattedAppointments);
+             }
+           } catch (reloadError) {
+             console.error('Error reloading appointments:', reloadError);
+           }
+         }
+       } else {
+        throw new Error(response.error || 'Failed to create appointment');
+      }
     } catch (error) {
       console.error('Error booking appointment:', error);
       alert('❌ Failed to book appointment. Please try again.');
@@ -122,6 +211,7 @@ const AppointmentPage = () => {
   };
 
   const getStatusColor = (status) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
     switch (status) {
       case 'scheduled': return 'bg-blue-100 text-blue-800';
       case 'completed': return 'bg-green-100 text-green-800';
@@ -258,7 +348,7 @@ const AppointmentPage = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Doctor & Department
+                  Doctor & Specialty
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date & Time
@@ -298,7 +388,7 @@ const AppointmentPage = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{appointment.doctorName}</div>
-                        <div className="text-sm text-gray-500">{appointment.department}</div>
+                        <div className="text-sm text-gray-500">{appointment.specialty}</div>
                         {appointment.location && (
                           <div className="text-xs text-gray-400">{appointment.location}</div>
                         )}
@@ -320,7 +410,7 @@ const AppointmentPage = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${appointment.fee}
+                      {appointment.fee && appointment.fee !== 'N/A' ? `$${appointment.fee}` : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
@@ -377,36 +467,36 @@ const AppointmentPage = () => {
                   >
                     <option value="">Choose a doctor...</option>
                     {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name} - {doctor.specialty}
-                      </option>
-                    ))}
+                       <option key={doctor.id} value={doctor.id}>
+                         {doctor.firstName && doctor.lastName ? `${doctor.firstName} ${doctor.lastName}` : 'Unknown Doctor'}{doctor.specialty ? ` - ${doctor.specialty}` : ''}
+                       </option>
+                     ))}
                   </select>
                   {errors.doctorId && (
                     <p className="text-red-500 text-sm mt-1">{errors.doctorId.message}</p>
                   )}
                 </div>
 
-                {selectedDoctor && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-4">
-                      <img 
-                        src={selectedDoctor.image} 
-                        alt={selectedDoctor.name}
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                      <div>
-                        <h4 className="font-medium text-gray-900">{selectedDoctor.name}</h4>
-                        <p className="text-sm text-gray-600">{selectedDoctor.specialty}</p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          {renderStars(Math.floor(selectedDoctor.rating))}
-                          <span className="text-sm text-gray-600">({selectedDoctor.rating})</span>
+                {selectedDoctorId && (
+                  (() => {
+                    const currentDoctor = doctors.find(d => d.id == selectedDoctorId);
+                    return currentDoctor ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{currentDoctor.firstName && currentDoctor.lastName ? `${currentDoctor.firstName} ${currentDoctor.lastName}` : 'Unknown Doctor'}</h4>
+                            <p className="text-sm text-gray-600">{currentDoctor.specialty || 'Doctor'}</p>
+                            <p className="text-sm text-gray-600">{currentDoctor.email || 'No email'}</p>
+                          </div>
                         </div>
-                        <p className="text-sm text-gray-600">{selectedDoctor.experience}</p>
-                        <p className="text-lg font-bold text-blue-600">${selectedDoctor.fee}</p>
                       </div>
-                    </div>
-                  </div>
+                    ) : null;
+                  })()
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -453,10 +543,12 @@ const AppointmentPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select type...</option>
-                    <option value="Consultation">Consultation</option>
-                    <option value="Follow-up">Follow-up</option>
-                    <option value="Emergency">Emergency</option>
-                    <option value="Procedure">Procedure</option>
+                    <option value="consultation">Consultation</option>
+                    <option value="follow-up">Follow-up</option>
+                    <option value="emergency">Emergency</option>
+                    <option value="routine">Routine</option>
+                    <option value="surgery">Surgery</option>
+                    <option value="procedure">Procedure</option>
                   </select>
                   {errors.appointmentType && (
                     <p className="text-red-500 text-sm mt-1">{errors.appointmentType.message}</p>

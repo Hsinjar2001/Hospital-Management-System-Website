@@ -1,195 +1,138 @@
-const { sequelize } = require('../config/database');
+const sequelize = require('../config/database');
+const { DataTypes } = require('sequelize');
 
-// Import all models
 const User = require('./User');
-const Patient = require('./Patient');
-const Doctor = require('./Doctor');
-const Department = require('./Department');
 const Appointment = require('./Appointment');
-const Prescription = require('./Prescription');
 const Invoice = require('./Invoice');
 const Review = require('./Review');
+const Prescription = require('./Prescription');
 
-// Define associations
-
-// User associations
-User.hasOne(Patient, { 
-  foreignKey: 'userId', 
-  as: 'patient',
+User.hasMany(Appointment, { 
+  foreignKey: 'patient_id', 
+  as: 'patientAppointments',
   onDelete: 'CASCADE'
 });
 
-User.hasOne(Doctor, { 
-  foreignKey: 'userId', 
-  as: 'doctor',
+User.hasMany(Appointment, { 
+  foreignKey: 'doctor_id', 
+  as: 'doctorAppointments',
   onDelete: 'CASCADE'
 });
 
-// Patient associations
-Patient.belongsTo(User, { 
-  foreignKey: 'userId', 
-  as: 'user',
-  onDelete: 'CASCADE'
-});
-
-Patient.hasMany(Appointment, { 
-  foreignKey: 'patientId', 
-  as: 'appointments',
-  onDelete: 'CASCADE'
-});
-
-Patient.hasMany(Prescription, { 
-  foreignKey: 'patientId', 
-  as: 'prescriptions',
-  onDelete: 'CASCADE'
-});
-
-Patient.hasMany(Invoice, { 
-  foreignKey: 'patientId', 
-  as: 'invoices',
-  onDelete: 'CASCADE'
-});
-
-Patient.hasMany(Review, { 
-  foreignKey: 'patientId', 
-  as: 'reviews',
-  onDelete: 'CASCADE'
-});
-
-// Doctor associations
-Doctor.belongsTo(User, { 
-  foreignKey: 'userId', 
-  as: 'user',
-  onDelete: 'CASCADE'
-});
-
-Doctor.belongsTo(Department, { 
-  foreignKey: 'departmentId', 
-  as: 'department'
-});
-
-Doctor.hasMany(Appointment, { 
-  foreignKey: 'doctorId', 
-  as: 'appointments',
-  onDelete: 'CASCADE'
-});
-
-Doctor.hasMany(Prescription, { 
-  foreignKey: 'doctorId', 
-  as: 'prescriptions',
-  onDelete: 'CASCADE'
-});
-
-Doctor.hasMany(Invoice, {
-  foreignKey: 'doctorId',
-  as: 'invoices',
-  onDelete: 'CASCADE'
-});
-
-Doctor.hasMany(Review, {
-  foreignKey: 'doctorId',
-  as: 'reviews',
-  onDelete: 'CASCADE'
-});
-
-// Department associations
-Department.hasMany(Doctor, { 
-  foreignKey: 'departmentId', 
-  as: 'doctors',
-  onDelete: 'SET NULL'
-});
-
-Department.hasMany(Appointment, { 
-  foreignKey: 'departmentId', 
-  as: 'appointments',
-  onDelete: 'CASCADE'
-});
-
-// Appointment associations
-Appointment.belongsTo(Patient, { 
-  foreignKey: 'patientId', 
+Appointment.belongsTo(User, { 
+  foreignKey: 'patient_id', 
   as: 'patient'
 });
 
-Appointment.belongsTo(Doctor, { 
-  foreignKey: 'doctorId', 
+Appointment.belongsTo(User, { 
+  foreignKey: 'doctor_id', 
   as: 'doctor'
 });
 
-Appointment.belongsTo(Department, { 
-  foreignKey: 'departmentId', 
-  as: 'department'
+User.hasMany(Invoice, { 
+  foreignKey: 'patient_id', 
+  as: 'patientInvoices',
+  onDelete: 'CASCADE'
 });
 
-Appointment.hasOne(Prescription, { 
-  foreignKey: 'appointmentId', 
-  as: 'prescription',
-  onDelete: 'SET NULL'
+User.hasMany(Invoice, { 
+  foreignKey: 'doctor_id', 
+  as: 'doctorInvoices',
+  onDelete: 'CASCADE'
+});
+
+Invoice.belongsTo(User, { 
+  foreignKey: 'patient_id', 
+  as: 'patient'
+});
+
+Invoice.belongsTo(User, { 
+  foreignKey: 'doctor_id', 
+  as: 'doctor'
 });
 
 Appointment.hasOne(Invoice, { 
-  foreignKey: 'appointmentId', 
+  foreignKey: 'appointment_id', 
   as: 'invoice',
-  onDelete: 'SET NULL'
+  onDelete: 'CASCADE'
 });
 
-// Prescription associations
-Prescription.belongsTo(Patient, { 
+Invoice.belongsTo(Appointment, {
+  foreignKey: 'appointment_id',
+  as: 'appointment'
+});
+
+User.hasMany(Review, { 
+  foreignKey: 'patient_id', 
+  as: 'patientReviews',
+  onDelete: 'CASCADE'
+});
+
+User.hasMany(Review, { 
+  foreignKey: 'doctor_id', 
+  as: 'doctorReviews',
+  onDelete: 'CASCADE'
+});
+
+Review.belongsTo(User, { 
+  foreignKey: 'patient_id', 
+  as: 'patient'
+});
+
+Review.belongsTo(User, { 
+  foreignKey: 'doctor_id', 
+  as: 'doctor'
+});
+
+Appointment.hasMany(Review, { 
+  foreignKey: 'appointment_id', 
+  as: 'reviews',
+  onDelete: 'CASCADE'
+});
+
+Review.belongsTo(Appointment, { 
+  foreignKey: 'appointment_id', 
+  as: 'appointment'
+});
+
+User.hasMany(Prescription, { 
+  foreignKey: 'patientId', 
+  as: 'patientPrescriptions',
+  onDelete: 'CASCADE'
+});
+
+User.hasMany(Prescription, { 
+  foreignKey: 'doctorId', 
+  as: 'doctorPrescriptions',
+  onDelete: 'CASCADE'
+});
+
+Prescription.belongsTo(User, { 
   foreignKey: 'patientId', 
   as: 'patient'
 });
 
-Prescription.belongsTo(Doctor, { 
+Prescription.belongsTo(User, { 
   foreignKey: 'doctorId', 
   as: 'doctor'
 });
 
-Prescription.belongsTo(Appointment, { 
+Appointment.hasMany(Prescription, { 
   foreignKey: 'appointmentId', 
-  as: 'appointment'
+  as: 'prescriptions',
+  onDelete: 'SET NULL'
 });
 
-// Invoice associations
-Invoice.belongsTo(Patient, {
-  foreignKey: 'patientId',
-  as: 'patient'
-});
-
-Invoice.belongsTo(Doctor, {
-  foreignKey: 'doctorId',
-  as: 'doctor'
-});
-
-Invoice.belongsTo(Appointment, {
+Prescription.belongsTo(Appointment, {
   foreignKey: 'appointmentId',
   as: 'appointment'
 });
 
-// Review associations
-Review.belongsTo(Patient, { 
-  foreignKey: 'patientId', 
-  as: 'patient'
-});
-
-Review.belongsTo(Doctor, { 
-  foreignKey: 'doctorId', 
-  as: 'doctor'
-});
-
-Review.belongsTo(Appointment, { 
-  foreignKey: 'appointmentId', 
-  as: 'appointment'
-});
-
-// Export all models and sequelize instance
 module.exports = {
   sequelize,
   User,
-  Patient,
-  Doctor,
-  Department,
   Appointment,
-  Prescription,
   Invoice,
-  Review
+  Review,
+  Prescription
 };
