@@ -1,34 +1,31 @@
 const express = require('express');
 const router = express.Router();
 
-// Import controllers
 const {
   getAllPrescriptions,
-  getPrescriptionById,
+  getPrescription,
   createPrescription,
   updatePrescription,
   deletePrescription,
   getPrescriptionsByPatient,
+  getPrescriptionsByUserId,
   getPrescriptionsByDoctor,
-  searchPrescriptions
+  searchPrescriptions,
+  purchasePrescription
 } = require('../controllers/prescriptionController');
 
-// Import middleware
-const { protect, authorize } = require('../middlewares/authMiddleware');
+const { authenticateToken } = require('../middleware/auth');
 
-// Protected routes
-router.use(protect);
+router.get('/', authenticateToken, getAllPrescriptions);
+router.get('/search', authenticateToken, searchPrescriptions);
+router.get('/patient/:patientId', authenticateToken, getPrescriptionsByPatient);
+router.get('/user/:userId', authenticateToken, getPrescriptionsByUserId);
+router.get('/doctor/:doctorId', authenticateToken, getPrescriptionsByDoctor);
 
-// Prescription management routes
-router.get('/', authorize('admin', 'doctor', 'patient'), getAllPrescriptions);
-router.get('/search', authorize('admin', 'doctor'), searchPrescriptions);
-router.get('/patient/:patientId', authorize('admin', 'doctor', 'patient'), getPrescriptionsByPatient);
-router.get('/doctor/:doctorId', authorize('admin', 'doctor'), getPrescriptionsByDoctor);
-
-// Individual prescription routes
-router.get('/:id', authorize('admin', 'doctor', 'patient'), getPrescriptionById);
-router.post('/', authorize('admin', 'doctor'), createPrescription);
-router.put('/:id', authorize('admin', 'doctor'), updatePrescription);
-router.delete('/:id', authorize('admin', 'doctor'), deletePrescription);
+router.get('/:id', authenticateToken, getPrescription);
+router.post('/', authenticateToken, createPrescription);
+router.post('/:id/purchase', authenticateToken, purchasePrescription);
+router.put('/:id', authenticateToken, updatePrescription);
+router.delete('/:id', authenticateToken, deletePrescription);
 
 module.exports = router;
